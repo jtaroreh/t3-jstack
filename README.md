@@ -30,7 +30,7 @@ Use poteto-mode to fix the search filter resetting when I change pages.
 
 The session-start hook tells each new chat when to enter `poteto-mode` on its own: work that touches more than one file, a design choice, or a bug whose cause is unknown. `poteto-mode` matches the task to a playbook and opens the other skills from there. They ship as upstream ships them, invoked by `poteto-mode` or typed by you (`/t3-pstack:<name>` on Claude Code, `$t3-pstack:<name>` on Codex).
 
-The plugin carries 65 skill directories, 24 of them `principle-*` leaves, and 4 agents.
+The plugin carries 66 skill directories, 24 of them `principle-*` leaves, and 4 agents.
 
 For Antigravity, use the [agystack integration](docs/antigravity.md). It keeps agystack's playbooks and Cloud Run swarm backend, with T3 owning the controller tasks.
 
