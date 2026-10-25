@@ -2,7 +2,7 @@
 
 pstack for [T3 Code](https://github.com/pingdotgg/t3code). It is Lauren Tan's (poteto's) [pstack](https://github.com/cursor/plugins/tree/main/pstack), with its Cursor mechanics rewritten in place for T3. Every subagent, panel, fan-out, schedule, and PR watch dispatches through T3's `t3-code` MCP tools, so an `interrogate`, `arena`, or `architect` panel can run Claude, GPT, and Grok reviewers side by side, from a Claude Code thread or a Codex thread.
 
-The skill text is Lauren's. A generated set of substitutions rewrites only what names Cursor (its `Task` tool, its model slugs, its `.mdc` rule, its cloud agents, `/loop`), and a few declared forks carry what a substitution cannot. Nothing else needs loading: the T3 rules sit where Lauren's dispatch rules sit.
+The upstream skill text is Lauren's. A generated set of substitutions rewrites only what names Cursor (its `Task` tool, its model slugs, its `.mdc` rule, its cloud agents, `/loop`), and a few declared forks carry what a substitution cannot. Port-owned additions include `jtaroreh-mode`. Nothing else needs loading: the T3 rules sit where Lauren's dispatch rules sit.
 
 t3-pstack works only inside T3.
 
@@ -30,7 +30,11 @@ Use poteto-mode to fix the search filter resetting when I change pages.
 
 The session-start hook tells each new chat when to enter `poteto-mode` on its own: work that touches more than one file, a design choice, or a bug whose cause is unknown. `poteto-mode` matches the task to a playbook and opens the other skills from there. They ship as upstream ships them, invoked by `poteto-mode` or typed by you (`/t3-pstack:<name>` on Claude Code, `$t3-pstack:<name>` on Codex).
 
-The plugin carries 66 skill directories, 24 of them `principle-*` leaves, and 4 agents.
+For a Gemini workhorse with stronger-model review, invoke `$t3-pstack:jtaroreh-mode` on Codex or `/t3-pstack:jtaroreh-mode` on Claude Code. [Jtaroreh mode](plugins/pstack/skills/jtaroreh-mode/SKILL.md) resolves Gemini 3.8 Flash from T3's live catalog. It uses the model sheet's `judgment and prose` and `hardest tasks` roles for advice and bounded takeover. A non-Gemini parent coordinates Gemini children. Select Gemini as the parent in T3 when you want it to own the main conversation.
+
+Jtaroreh mode requires review for risky plans and final artifacts, persists versioned constraints, and rejects stale verdicts. These are agent instructions. The [runtime contract](plugins/pstack/skills/jtaroreh-mode/references/runtime-contract.md) describes the host changes needed for enforced tool gates. Automatic session-start routing still enters poteto-mode. Neither mode changes the chat model by loading a skill.
+
+The plugin carries 67 skill directories, 24 of them `principle-*` leaves, and 4 agents.
 
 For Antigravity, use the [agystack integration](docs/antigravity.md). It keeps agystack's playbooks and Cloud Run swarm backend, with T3 owning the controller tasks.
 
