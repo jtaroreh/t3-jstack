@@ -42,12 +42,12 @@ describe("static plugin invariants", () => {
 
   test("a commands/ directory fails", () => {
     const root = plugin((r) => mkdirSync(join(r, "commands"), { recursive: true }));
-    expect(() => check(root)).toThrow("plugins/pstack/commands/ exists");
+    expect(() => check(root)).toThrow("plugins/jstack/commands/ exists");
   });
 
   test("an Agent Plugins root manifest fails", () => {
     const root = plugin((r) => writeFileSync(join(r, "plugin.json"), "{}\n"));
-    expect(() => check(root)).toThrow("plugins/pstack/plugin.json exists; Codex would truncate every injected SKILL.md");
+    expect(() => check(root)).toThrow("plugins/jstack/plugin.json exists; Codex would truncate every injected SKILL.md");
   });
 
   test("disable-model-invocation on poteto-mode fails and names the file", () => {
@@ -59,7 +59,7 @@ describe("static plugin invariants", () => {
 
   test("a tree without poteto-mode fails", () => {
     const root = plugin((r) => rmSync(join(r, "skills", "poteto-mode"), { recursive: true }));
-    expect(() => check(root)).toThrow("plugins/pstack/skills has no poteto-mode skill");
+    expect(() => check(root)).toThrow("plugins/jstack/skills has no poteto-mode skill");
   });
 
   test("a skill whose name is not its directory fails", () => {

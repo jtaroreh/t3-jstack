@@ -6,7 +6,7 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, symlinkSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
-import { checkSheet, parseSheet } from "../../plugins/pstack/skills/setup-pstack/scripts/t3-sheet.mjs";
+import { checkSheet, parseSheet } from "../../plugins/jstack/skills/setup-pstack/scripts/t3-sheet.mjs";
 import { check, INSTALL_HINT, tempBeside, writeAtomic } from "./common.mjs";
 
 export const HOME_SHEET = "t3-pstack-models.md";

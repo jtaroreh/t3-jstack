@@ -28,7 +28,7 @@ import {
 import { ENTRY_PATH } from "../tools/install/agystack.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
-const repoAdapterSkill = join(repoRoot, "plugins/pstack/skills/t3-agystack/SKILL.md");
+const repoAdapterSkill = join(repoRoot, "plugins/jstack/skills/t3-agystack/SKILL.md");
 
 let nextId = 0;
 function workdir() {
@@ -50,7 +50,7 @@ function fixtureSource(root) {
 }
 
 function fixturePackage(root, withResource = true) {
-  const base = join(root, "plugins/pstack/skills/t3-agystack");
+  const base = join(root, "plugins/jstack/skills/t3-agystack");
   mkdirSync(join(base, "scripts"), { recursive: true });
   writeFileSync(join(base, "SKILL.md"), readFileSync(repoAdapterSkill));
   if (withResource) {
@@ -335,7 +335,7 @@ describe("adapter resources from the installed package", () => {
     const pack = fixturePackage(workdir(), true);
     project({ build: buildProjection({ sourceRoot: source, destSkillsDir: destSkills, packageRoot: pack }) });
 
-    const nativeScripts = join(pack, "plugins/pstack/skills", ADAPTER_SCRIPTS_DIR);
+    const nativeScripts = join(pack, "plugins/jstack/skills", ADAPTER_SCRIPTS_DIR);
     const projectedScripts = join(destSkills, ADAPTER_SCRIPTS_DIR);
     expect(readdirSync(projectedScripts).sort()).toEqual(readdirSync(nativeScripts).sort());
     for (const name of readdirSync(nativeScripts)) {
@@ -540,7 +540,7 @@ test("the real adapter projection includes its guides and ranking CLI without ch
     const build = buildProjection({ sourceRoot: source, destSkillsDir: destSkills, packageRoot: repoRoot });
     project({ build });
     for (const path of ["t3-agystack/references/cloud-operations.md", "swarm/references/candidate-ranking.md", "swarm/scripts/rank-candidates.mjs"]) {
-      expect(sha(join(destSkills, path))).toBe(sha(join(repoRoot, "plugins/pstack/skills", path)));
+      expect(sha(join(destSkills, path))).toBe(sha(join(repoRoot, "plugins/jstack/skills", path)));
     }
     const result = spawnSync("node", [join(destSkills, "swarm/scripts/rank-candidates.mjs"), "--help"], { encoding: "utf8" });
     expect(result.status, result.stderr).toBe(0);

@@ -48,7 +48,7 @@
 // A failed run writes nothing, leaving the tree for inspection.
 // The pin in upstream.json is advanced only when the run succeeds, which it
 // can with conflicts: the markers are in the tree, and generate.mjs fails on
-// any marker line under plugins/pstack, so CI rejects an unresolved sync.
+// any marker line under plugins/jstack, so CI rejects an unresolved sync.
 // With --dry-run nothing is written and the pin stays; passing the pinned SHA
 // as <new-sha> under --dry-run prints the ownership map. At the pin an upstream
 // file the port lacks fails the run, since a sync to a new SHA would write it
@@ -732,7 +732,7 @@ function main() {
     for (const c of report.conflicts) {
       if (c.reason === "removed-upstream") console.log(`  now port-only: ${spec.localPath}/${c.rel}`);
     }
-    console.log("next: resolve the conflict markers, review the diff, write the CHANGES.md entry from this report (name each now port-only file), run bun tools/generate.mjs (it fails while a marker remains)");
+    console.log("next: resolve the conflict markers, review the diff, note this report's changes (name each now port-only file) for the GitHub Release notes, run bun tools/generate.mjs (it fails while a marker remains)");
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }

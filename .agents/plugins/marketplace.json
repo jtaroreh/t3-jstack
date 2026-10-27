@@ -8,7 +8,7 @@
       "name": "t3-jstack",
       "source": {
         "source": "local",
-        "path": "./plugins/pstack"
+        "path": "./plugins/jstack"
       },
       "policy": {
         "installation": "AVAILABLE",

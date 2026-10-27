@@ -11,7 +11,7 @@ This pass used the local `pstack-agy` source and `cursor_pstack_comparison.md` a
 - Durable progress extends `attach` and adds `progress`. It retains 256 allowlisted aggregate events across observation restarts. A dedicated Cloud Run observer avoids the engine's implicit downloads. Tests inject split, malformed, oversized, and credential-bearing output. Observation never holds the cancellation lock. No worker transcripts are inserted into T3.
 - Artifact discovery adds local paths, sizes, hashes, and quarantine status through `artifacts`. Harvesting also fetches optional `results.tsv` files omitted by the native harvester. Subprocess checks cover missing downloads, failures, interruption, and symlink escape attempts. A Python storage fixture verifies exact session keys and atomic TSV replacement.
 
-See [cloud operations](../plugins/pstack/skills/t3-agystack/references/cloud-operations.md), [candidate ranking](../plugins/pstack/skills/swarm/references/candidate-ranking.md), and [bounded recovery](../plugins/pstack/skills/poteto-mode/references/task-recovery.md).
+See [cloud operations](../plugins/jstack/skills/t3-agystack/references/cloud-operations.md), [candidate ranking](../plugins/jstack/skills/swarm/references/candidate-ranking.md), and [bounded recovery](../plugins/jstack/skills/poteto-mode/references/task-recovery.md).
 
 ## Existing owners retained
 

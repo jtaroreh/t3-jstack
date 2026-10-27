@@ -30,7 +30,7 @@ import { discoverHomes } from "../tools/install/homes.mjs";
 import { doctorSheet, moveSheet } from "../tools/install/sheet.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
-const { roles, tiers } = JSON.parse(readFileSync(join(repoRoot, "plugins/pstack/models.json"), "utf8"));
+const { roles, tiers } = JSON.parse(readFileSync(join(repoRoot, "plugins/jstack/models.json"), "utf8"));
 const FIX = "rerun `npx -y github:jtaroreh/t3-jstack install`";
 
 const scratch = [];
@@ -49,7 +49,7 @@ const writeJson = (path, value) => {
 const mode = (path) => statSync(path).mode & 0o777;
 
 // The plugin's own skills, and a doctor context that trusts the GitHub repo.
-const SKILL = (name) => readFileSync(join(repoRoot, "plugins/pstack/skills", name, "SKILL.md"), "utf8");
+const SKILL = (name) => readFileSync(join(repoRoot, "plugins/jstack/skills", name, "SKILL.md"), "utf8");
 const skills = new Map(["how", "why"].map((name) => [name, SKILL(name)]));
 const github = parseSource("jtaroreh/t3-jstack", "/home/u");
 const context = { source: github, trusted: new Set([github.key]), version: "2.0.0-rc.3", skills };

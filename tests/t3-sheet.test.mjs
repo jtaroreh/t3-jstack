@@ -10,10 +10,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadModels } from "../tools/generate.mjs";
-import { checkSheet, family, parseEntry, parseSheet } from "../plugins/pstack/skills/setup-pstack/scripts/t3-sheet.mjs";
+import { checkSheet, family, parseEntry, parseSheet } from "../plugins/jstack/skills/setup-pstack/scripts/t3-sheet.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const script = join(root, "plugins/pstack/skills/setup-pstack/scripts/t3-sheet.mjs");
+const script = join(root, "plugins/jstack/skills/setup-pstack/scripts/t3-sheet.mjs");
 const catalogPath = join(root, "tests/fixtures/t3-catalog.json");
 const catalog = JSON.parse(readFileSync(catalogPath, "utf8"));
 const { roles, tiers: defaults } = loadModels();
@@ -78,7 +78,7 @@ describe("checkSheet without a catalog", () => {
 
 describe("checkSheet against a catalog", () => {
   test("the default sheet setup-pstack writes dispatches", () => {
-    const setup = readFileSync(join(root, "plugins/pstack/skills/setup-pstack/SKILL.md"), "utf8");
+    const setup = readFileSync(join(root, "plugins/jstack/skills/setup-pstack/SKILL.md"), "utf8");
     const sheet = setup.match(/```markdown\n(# pstack model configuration \(T3\)[\s\S]*?)```/)[1];
     expect(parseSheet(sheet)).toHaveLength(roles.filter((r) => !r.optional).length + 1);
     expect(check(sheet)).toEqual([]);
@@ -273,7 +273,7 @@ describe("t3-sheet.mjs CLI", () => {
 });
 
 describe("the T3 session-start context", () => {
-  const pluginRoot = join(root, "plugins/pstack");
+  const pluginRoot = join(root, "plugins/jstack");
 
   test.each(["claude", "codex"])("the %s hook tells the session to route and dispatch through T3", (runtime) => {
     const home = mkdtempSync(join(tmpdir(), "t3-session-"));

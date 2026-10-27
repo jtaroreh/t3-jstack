@@ -28,7 +28,7 @@ import { resolveCli } from "../tools/install/common.mjs";
 import { hookDigest } from "../tools/plugin.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
-const version = JSON.parse(readFileSync(join(repoRoot, "plugins/pstack/.claude-plugin/plugin.json"), "utf8")).version;
+const version = JSON.parse(readFileSync(join(repoRoot, "plugins/jstack/.claude-plugin/plugin.json"), "utf8")).version;
 const ROUTING = "You have t3-jstack, pstack for T3 Code.";
 const SHEET = "# budget: large (xhigh)\nbug-fix: inherit-parent\nsession hook: on\n";
 
@@ -280,7 +280,7 @@ describe.skipIf(!enabled)("the installer, end to end", () => {
     mkdirSync(join(home, ".agents/skills/how"), { recursive: true });
     mkdirSync(join(home, ".agents/skills/why"), { recursive: true });
     writeFileSync(join(home, ".agents/skills/how/SKILL.md"), "---\nname: how\ndescription: My own notes on how things work.\n---\n");
-    cpSync(join(repoRoot, "plugins/pstack/skills/why/SKILL.md"), join(home, ".agents/skills/why/SKILL.md"));
+    cpSync(join(repoRoot, "plugins/jstack/skills/why/SKILL.md"), join(home, ".agents/skills/why/SKILL.md"));
     const { status, report } = installer("doctor");
     expect(failing(row(report, ".codex").checks)).toEqual([`no plain copies of plugin skills: ${join(home, ".agents/skills/why/SKILL.md")}`]);
     expect(status).toBe(1);
@@ -300,7 +300,7 @@ describe.skipIf(!enabled)("the installer, on a t3-jstack marketplace from anothe
     // A marketplace that calls itself t3-jstack, with a hook that leaves a mark.
     const counterfeit = pluginCopy(join(root, "counterfeit"));
     const marked = join(root, "hook-ran");
-    edit(join(counterfeit, "plugins/pstack/hooks/codex-hooks.json"), /"command": "[^\n]*",\n/, `"command": "touch ${marked}",\n`);
+    edit(join(counterfeit, "plugins/jstack/hooks/codex-hooks.json"), /"command": "[^\n]*",\n/, `"command": "touch ${marked}",\n`);
     for (const [bin, dir, variable] of [["codex", ".codex", "CODEX_HOME"], ["claude", ".claude", "CLAUDE_CONFIG_DIR"]]) {
       mkdirSync(join(home, dir), { recursive: true });
       sh(bin, ["plugin", "marketplace", "add", counterfeit], { [variable]: join(home, dir) });
@@ -348,11 +348,11 @@ describe.skipIf(!enabled)("the installer, on a release that changes the hook ent
     expect(installer("install", source).status).toBe(0);
 
     const next = "9.9.9";
-    for (const file of [".claude-plugin/marketplace.json", "plugins/pstack/.claude-plugin/plugin.json", "plugins/pstack/.codex-plugin/plugin.json"]) {
+    for (const file of [".claude-plugin/marketplace.json", "plugins/jstack/.claude-plugin/plugin.json", "plugins/jstack/.codex-plugin/plugin.json"]) {
       const path = join(source, file);
       writeFileSync(path, readFileSync(path, "utf8").replace(`"version": "${version}"`, `"version": "${next}"`));
     }
-    const hooks = join(source, "plugins/pstack/hooks/codex-hooks.json");
+    const hooks = join(source, "plugins/jstack/hooks/codex-hooks.json");
     edit(hooks, "startup|resume|clear|compact", "startup|resume|compact|clear");
 
     const unpinned = installer("update", source);
@@ -365,7 +365,7 @@ describe.skipIf(!enabled)("the installer, on a release that changes the hook ent
 
     const pins = join(source, "tools/frozen-hooks.json");
     const pinned = JSON.parse(readFileSync(pins, "utf8"));
-    pinned["plugins/pstack/hooks/codex-hooks.json"] = { sha256: hookDigest(readFileSync(hooks, "utf8")), changedIn: next };
+    pinned["plugins/jstack/hooks/codex-hooks.json"] = { sha256: hookDigest(readFileSync(hooks, "utf8")), changedIn: next };
     writeFileSync(pins, JSON.stringify(pinned, null, 2) + "\n");
     const { status, report } = installer("update", source);
     console.log("release:", JSON.stringify(report.homes.map(({ dir, steps }) => ({ dir: relative(home, dir), steps }))));

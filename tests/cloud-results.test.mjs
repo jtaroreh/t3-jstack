@@ -11,7 +11,7 @@ test("results adapter fetches exact run keys atomically and fails on interrupted
     for (const file of ["google/__init__.py", "google/cloud/__init__.py"]) writeFileSync(join(modules, file), "");
     writeFileSync(join(modules, "google/cloud/storage.py"), `import os, json\nclass Blob:\n name="swarms/t3-test/task-0/results.tsv"\n size=8\n generation=7\n def download_to_file(self, output, if_generation_match):\n  assert if_generation_match == 7\n  output.write(b'score\\t1\\n')\n  if os.environ.get('INTERRUPT_DOWNLOAD'): raise RuntimeError('interrupted')\nclass Bucket:\n def list_blobs(self, prefix):\n  assert prefix == 'swarms/t3-test/task-'\n  with open(os.environ['KEY_LOG'], 'a') as log: log.write(prefix+'\\n')\n  blobs = [Blob()]\n  alias = Blob(); alias.name = "swarms/t3-test/task-00/results.tsv"\n  return blobs + [alias]\nclass Client:\n def bucket(self, name):\n  assert name == 'test-bucket'\n  return Bucket()\n`);
     const dest = join(root, "artifacts"), keys = join(root, "keys");
-    const args = ["plugins/pstack/skills/t3-agystack/scripts/cloud-results.py", "--session-id", "t3-test", "--gcs-bucket", "test-bucket", "--max-tasks", "2", "--destination", dest];
+    const args = ["plugins/jstack/skills/t3-agystack/scripts/cloud-results.py", "--session-id", "t3-test", "--gcs-bucket", "test-bucket", "--max-tasks", "2", "--destination", dest];
     const run = extra => spawnSync("python3", args, { encoding: "utf8", env: { ...process.env, PYTHONPATH: modules, PYTHONDONTWRITEBYTECODE: "1", KEY_LOG: keys, ...extra } });
     const delivered = run(); expect(delivered.status).toBe(0);
     expect(JSON.parse(delivered.stdout)).toEqual([{ taskIndex: 0, kind: "results" }]);

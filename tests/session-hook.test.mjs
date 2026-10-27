@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { agentSkills } from "../tools/generate.mjs";
 import { sheetCases, writeSheet } from "./session-hook-sheets.mjs";
 
-const pluginRoot = fileURLToPath(new URL("../plugins/pstack/", import.meta.url));
+const pluginRoot = fileURLToPath(new URL("../plugins/jstack/", import.meta.url));
 const mandate = readFileSync(join(pluginRoot, "hooks/session-start-context.md"), "utf8");
 const codexManifest = JSON.parse(readFileSync(join(pluginRoot, ".codex-plugin/plugin.json"), "utf8"));
 

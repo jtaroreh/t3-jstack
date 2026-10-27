@@ -46,14 +46,14 @@ const USAGE =
 // maps each skill to its SKILL.md, and `codexHook` is the hooks file the
 // Codex manifest names, with its pinned digest.
 function pluginFacts(root) {
-  const plugin = join(root, "plugins/pstack");
+  const plugin = join(root, "plugins/jstack");
   const { roles, tiers } = readJson(join(plugin, "models.json"));
   const hooks = readJson(join(plugin, ".codex-plugin/plugin.json")).hooks.replace(/^\.\//, "");
   const skills = readdirSync(join(plugin, "skills"), { withFileTypes: true }).filter((entry) => entry.isDirectory());
   return {
     version: readJson(join(plugin, ".claude-plugin/plugin.json")).version,
     skills: new Map(skills.map(({ name }) => [name, readFileSync(join(plugin, "skills", name, "SKILL.md"), "utf8")])),
-    codexHook: { path: hooks, sha256: readJson(join(root, FROZEN_HOOKS))[`plugins/pstack/${hooks}`].sha256 },
+    codexHook: { path: hooks, sha256: readJson(join(root, FROZEN_HOOKS))[`plugins/jstack/${hooks}`].sha256 },
     roles,
     tiers,
   };

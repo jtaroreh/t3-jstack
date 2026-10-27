@@ -3,7 +3,7 @@
   "components": {
     "pstack": {
       "upstreamPath": "pstack",
-      "localPath": "plugins/pstack",
+      "localPath": "plugins/jstack",
       "sha": "e73df471cd4bd918367e99f3dd9c51bd53ddf5f0",
       "exclude": [
         ".cursor-plugin/",
@@ -19,7 +19,7 @@
     },
     "cursor-team-kit": {
       "upstreamPath": "cursor-team-kit/skills",
-      "localPath": "plugins/pstack/skills",
+      "localPath": "plugins/jstack/skills",
       "sha": "e73df471cd4bd918367e99f3dd9c51bd53ddf5f0",
       "exclude": [
         "check-compiler-errors/",
@@ -38,7 +38,7 @@
     },
     "thermos": {
       "upstreamPath": "thermos",
-      "localPath": "plugins/pstack",
+      "localPath": "plugins/jstack",
       "sha": "e73df471cd4bd918367e99f3dd9c51bd53ddf5f0",
       "exclude": [
         ".cursor-plugin/",

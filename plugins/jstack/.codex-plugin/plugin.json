@@ -1,6 +1,6 @@
 {
   "name": "t3-jstack",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "pstack for T3 Code on a Codex host: Lauren Tan's pstack with its Cursor mechanics rewritten in place for T3, so subagents, panels, schedules, and PR watches dispatch through T3's orchestration.",
   "author": {
     "name": "Joel Taroreh",
@@ -44,7 +44,7 @@
     ],
     "websiteURL": "https://github.com/jtaroreh/t3-jstack",
     "brandColor": "#7C3AED",
-    "composerIcon": "./assets/pstack-icon.png",
-    "logo": "./assets/pstack-icon.png"
+    "composerIcon": "./assets/jstack-icon.png",
+    "logo": "./assets/jstack-icon.png"
   }
 }

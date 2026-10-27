@@ -3,7 +3,7 @@
 // with. The installer imports this file, so it imports only Node.
 import { createHash } from "node:crypto";
 
-export const PLUGIN = "plugins/pstack";
+export const PLUGIN = "plugins/jstack";
 export const SKILLS = `${PLUGIN}/skills`;
 
 // Each hooks file's digest and the release that last changed it. A hooks

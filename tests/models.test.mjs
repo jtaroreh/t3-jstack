@@ -13,13 +13,13 @@ import { loadModels, parseModels } from "../tools/generate.mjs";
 import { markdownFiles } from "../tools/validate-skills.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
-const skillsDir = join(repoRoot, "plugins/pstack/skills");
-const raw = JSON.parse(readFileSync(join(repoRoot, "plugins/pstack/models.json"), "utf8"));
+const skillsDir = join(repoRoot, "plugins/jstack/skills");
+const raw = JSON.parse(readFileSync(join(repoRoot, "plugins/jstack/models.json"), "utf8"));
 const models = loadModels();
 
 describe("committed models.json", () => {
   test("the file stays one row per role so a role change is a one-line diff", () => {
-    const text = readFileSync(join(repoRoot, "plugins/pstack/models.json"), "utf8");
+    const text = readFileSync(join(repoRoot, "plugins/jstack/models.json"), "utf8");
     expect(text.match(/^\s*\{ "role"/gm)).toHaveLength(raw.roles.length);
   });
 

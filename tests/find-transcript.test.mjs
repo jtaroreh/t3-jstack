@@ -4,12 +4,12 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, utimesSync, 
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 
-import { candidates, findTranscript, openingPrompt, sessionTranscript } from "../plugins/pstack/skills/reflect/scripts/find-transcript.mjs";
+import { candidates, findTranscript, openingPrompt, sessionTranscript } from "../plugins/jstack/skills/reflect/scripts/find-transcript.mjs";
 import { removeDuring } from "./remove-during.mjs";
 
-const script = join(import.meta.dir, "../plugins/pstack/skills/reflect/scripts/find-transcript.mjs");
+const script = join(import.meta.dir, "../plugins/jstack/skills/reflect/scripts/find-transcript.mjs");
 const noNode = spawnSync("node", ["--version"]).status !== 0;
-const skill = readFileSync(join(import.meta.dir, "../plugins/pstack/skills/reflect/SKILL.md"), "utf8");
+const skill = readFileSync(join(import.meta.dir, "../plugins/jstack/skills/reflect/SKILL.md"), "utf8");
 
 const meta = JSON.stringify({ type: "bridge-session", sessionId: "abc" });
 const summary = JSON.stringify({ type: "summary", summary: "earlier work" });
@@ -303,7 +303,7 @@ describe("find-transcript", () => {
     const command = skill.match(/^```bash\n(node "<plugin root>\/skills\/reflect\/scripts\/find-transcript\.mjs" .*)$/m)?.[1];
     if (command === undefined) throw new Error("reflect/SKILL.md has no find-transcript command");
     const plugin = join(dir, "plugin install");
-    symlinkSync(join(import.meta.dir, "../plugins/pstack"), plugin);
+    symlinkSync(join(import.meta.dir, "../plugins/jstack"), plugin);
     return command
       .replace("<plugin root>", plugin)
       .replace("<encoded-cwd>", encodedCwd)

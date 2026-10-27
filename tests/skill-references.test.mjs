@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { agentSkills } from "../tools/generate.mjs";
 import { markdownFiles } from "../tools/validate-skills.mjs";
 
-const skillsDir = fileURLToPath(new URL("../plugins/pstack/skills", import.meta.url));
+const skillsDir = fileURLToPath(new URL("../plugins/jstack/skills", import.meta.url));
 const names = new Set(agentSkills(skillsDir).map((s) => s.name));
 const principles = new Set([...names].filter((n) => n.startsWith("principle-")));
 

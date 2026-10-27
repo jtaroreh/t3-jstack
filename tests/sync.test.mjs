@@ -219,8 +219,8 @@ describe("parseSubstitutions", () => {
 });
 
 describe("parseForks", () => {
-  const components = { kit: { localPath: "plugins/pstack/skills" } };
-  const path = "plugins/pstack/skills/s.md";
+  const components = { kit: { localPath: "plugins/jstack/skills" } };
+  const path = "plugins/jstack/skills/s.md";
   const entry = { kind: "policy", why: "Fixture fork.", since: "0.9.48", upstream: "not-proposed" };
   const parse = (fields) => parseForks({ kit: { [path]: { ...entry, ...fields } } }, components);
 
@@ -238,7 +238,7 @@ describe("parseForks", () => {
 
   test("an unknown component or a path outside the component fails", () => {
     expect(() => parseForks({ other: {} }, components)).toThrow('forks.json: unknown component "other"');
-    expect(() => parseForks({ kit: { "tools/s.md": entry } }, components)).toThrow("not under plugins/pstack/skills");
+    expect(() => parseForks({ kit: { "tools/s.md": entry } }, components)).toThrow("not under plugins/jstack/skills");
   });
 });
 
@@ -454,7 +454,7 @@ describe("syncComponent", () => {
   // copies and the manifests name Cursor as legal and descriptive text.
   test("installed plugin text the model reads is free of the denylist", () => {
     for (const dir of ["skills", "agents", "hooks"]) {
-      const at = join(import.meta.dir, "../plugins/pstack", dir);
+      const at = join(import.meta.dir, "../plugins/jstack", dir);
       const exclude = dir === "skills" ? ["poteto-mode/references/licenses"] : [];
       const report = sync({ oldDir: at, newDir: at, localDir: at, exclude, dryRun: true });
       expect(report.unchanged).toBeGreaterThan(0);
@@ -1388,7 +1388,7 @@ describe("syncComponent", () => {
     const good = "---\nname: a\ndescription: fine\n---\nbody\n";
     const bad = "---\nname: a\ndescription: [unclosed\n---\nbody\n";
     const models = loadModels();
-    const derive = (rel, text) => deriveT3(join("plugins/pstack/skills", rel), text, models);
+    const derive = (rel, text) => deriveT3(join("plugins/jstack/skills", rel), text, models);
     const upstreamDeletedIt = { old: { "a/SKILL.md": good, "b/SKILL.md": bad }, new: { "a/SKILL.md": good } };
     const upstreamFixedIt = { old: { "a/SKILL.md": bad }, new: { "a/SKILL.md": good } };
     for (const { old, new: next } of [upstreamDeletedIt, upstreamFixedIt]) {
@@ -1422,7 +1422,7 @@ describe("syncComponent", () => {
 
 describe("sync CLI", () => {
   const declareS = (kind) => ({
-    "plugins/pstack/skills/s.md": { kind, why: "Fixture fork.", since: "0.9.48", upstream: "not-proposed" },
+    "plugins/jstack/skills/s.md": { kind, why: "Fixture fork.", since: "0.9.48", upstream: "not-proposed" },
   });
 
   function cli({ oldText, newText, localText, forks = {}, substitutions = [] }) {
@@ -1449,20 +1449,20 @@ describe("sync CLI", () => {
     const { denylist } = JSON.parse(readFileSync(join(import.meta.dir, "../tools/substitutions.json"), "utf8"));
     writeFileSync(join(port, "tools/substitutions.json"), JSON.stringify({ substitutions, denylist }));
     symlinkSync(join(import.meta.dir, "../node_modules"), join(port, "node_modules"));
-    cpSync(join(import.meta.dir, "../plugins/pstack/models.json"), join(port, "plugins/pstack/models.json"));
-    mkdirSync(join(port, "plugins/pstack/skills"));
-    mkdirSync(join(port, "plugins/pstack/skills/setup-pstack/scripts"), { recursive: true });
-    cpSync(join(import.meta.dir, "../plugins/pstack/skills/setup-pstack/scripts/t3-sheet.mjs"), join(port, "plugins/pstack/skills/setup-pstack/scripts/t3-sheet.mjs"));
-    writeFileSync(join(port, "plugins/pstack/skills/s.md"), localText);
-    for (const { skill } of JSON.parse(readFileSync(join(port, "plugins/pstack/models.json"), "utf8")).roles) {
-      mkdirSync(join(port, "plugins/pstack/skills", skill), { recursive: true });
-      writeFileSync(join(port, "plugins/pstack/skills", skill, "SKILL.md"), "");
+    cpSync(join(import.meta.dir, "../plugins/jstack/models.json"), join(port, "plugins/jstack/models.json"));
+    mkdirSync(join(port, "plugins/jstack/skills"));
+    mkdirSync(join(port, "plugins/jstack/skills/setup-pstack/scripts"), { recursive: true });
+    cpSync(join(import.meta.dir, "../plugins/jstack/skills/setup-pstack/scripts/t3-sheet.mjs"), join(port, "plugins/jstack/skills/setup-pstack/scripts/t3-sheet.mjs"));
+    writeFileSync(join(port, "plugins/jstack/skills/s.md"), localText);
+    for (const { skill } of JSON.parse(readFileSync(join(port, "plugins/jstack/models.json"), "utf8")).roles) {
+      mkdirSync(join(port, "plugins/jstack/skills", skill), { recursive: true });
+      writeFileSync(join(port, "plugins/jstack/skills", skill, "SKILL.md"), "");
     }
     writeFileSync(
       join(port, "tools/upstream.json"),
       JSON.stringify({
         remote: upstream,
-        components: { kit: { upstreamPath: "skills", localPath: "plugins/pstack/skills", sha: oldSha } },
+        components: { kit: { upstreamPath: "skills", localPath: "plugins/jstack/skills", sha: oldSha } },
       }),
     );
     writeFileSync(join(port, "tools/forks.json"), JSON.stringify({ kit: forks }));
@@ -1475,7 +1475,7 @@ describe("sync CLI", () => {
       });
     const run = (...flags) => runAt(newSha, ...flags);
     const pin = () => JSON.parse(readFileSync(join(port, "tools/upstream.json"), "utf8")).components.kit.sha;
-    const local = () => readFileSync(join(port, "plugins/pstack/skills/s.md"), "utf8");
+    const local = () => readFileSync(join(port, "plugins/jstack/skills/s.md"), "utf8");
     return { oldSha, newSha, scratch, run, runAt, pin, local, port };
   }
 
@@ -1516,14 +1516,14 @@ describe("sync CLI", () => {
 
   test("a dry run prints each fork's changed lines with a total, then the port-only files", () => {
     const { run } = cli({ oldText: "one\n", newText: "one\n", localText: "one\nport\n", forks: declareS("policy") });
-    const models = JSON.parse(readFileSync(join(import.meta.dir, "../plugins/pstack/models.json"), "utf8"));
+    const models = JSON.parse(readFileSync(join(import.meta.dir, "../plugins/jstack/models.json"), "utf8"));
     const roleSkills = [...new Set(models.roles.map((r) => r.skill))];
 
     const result = run("--dry-run");
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain(
-      "\nforked (upstream untouched): 1\n     1 policy plugins/pstack/skills/s.md\n     1 total changed lines\n",
+      "\nforked (upstream untouched): 1\n     1 policy plugins/jstack/skills/s.md\n     1 total changed lines\n",
     );
     expect(result.stderr).not.toContain("tools/forks.json");
     const portOnly = [
@@ -1531,17 +1531,17 @@ describe("sync CLI", () => {
       "setup-pstack/scripts/t3-sheet.mjs",
     ];
     expect(result.stdout).toContain(`\nport-only: ${portOnly.length} files\n`);
-    for (const rel of portOnly) expect(result.stdout).toContain(`\n  plugins/pstack/skills/${rel}\n`);
+    for (const rel of portOnly) expect(result.stdout).toContain(`\n  plugins/jstack/skills/${rel}\n`);
   });
 
   test("a dry run prints mode in place of a count for a mode-only fork", () => {
     const { run, port } = cli({ oldText: "one\n", newText: "one\n", localText: "one\n", forks: declareS("port-feature") });
-    chmodSync(join(port, "plugins/pstack/skills/s.md"), 0o755);
+    chmodSync(join(port, "plugins/jstack/skills/s.md"), 0o755);
 
     const result = run("--dry-run");
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("  mode port-feature plugins/pstack/skills/s.md\n     0 total changed lines\n");
+    expect(result.stdout).toContain("  mode port-feature plugins/jstack/skills/s.md\n     0 total changed lines\n");
   });
 
   test("an undeclared fork fails the dry run and the real run naming its path, and nothing is written", () => {
@@ -1553,7 +1553,7 @@ describe("sync CLI", () => {
 
     for (const result of [dryRun, actual]) {
       expect(result.status).toBe(1);
-      expect(result.stderr).toContain(`${failure}; declare each or restore upstream's form, then rerun:\n  plugins/pstack/skills/s.md\n`);
+      expect(result.stderr).toContain(`${failure}; declare each or restore upstream's form, then rerun:\n  plugins/jstack/skills/s.md\n`);
     }
     expect(pin()).toBe(oldSha);
     expect(local()).toBe("port\n");
@@ -1561,13 +1561,13 @@ describe("sync CLI", () => {
 
   test("a path collision fails the dry run and the real run naming its path, and nothing is written", () => {
     const { run, pin, oldSha, port } = cli({ oldText: "one\n", newText: "two\n", localText: "one\n" });
-    const skill = join(port, "plugins/pstack/skills/s.md");
+    const skill = join(port, "plugins/jstack/skills/s.md");
     rmSync(skill);
     mkdirSync(skill);
     writeFileSync(join(skill, "inner.md"), "the port's own\n");
     const failure =
       "FAIL: port paths the tree cannot hold next to upstream's; rename or delete each, then rerun:\n" +
-      "  plugins/pstack/skills/s.md (a directory where upstream has a file)\n";
+      "  plugins/jstack/skills/s.md (a directory where upstream has a file)\n";
 
     for (const result of [run("--dry-run"), run()]) {
       expect(result.status).toBe(1);
@@ -1602,7 +1602,7 @@ describe("sync CLI", () => {
 
     expect(result.status).toBe(0);
     expect(result.stderr).toContain(
-      "warning: tools/forks.json declares plugins/pstack/skills/s.md under kit, but it is no longer forked (unchanged); delete the entry\n",
+      "warning: tools/forks.json declares plugins/jstack/skills/s.md under kit, but it is no longer forked (unchanged); delete the entry\n",
     );
   });
 
@@ -1612,18 +1612,18 @@ describe("sync CLI", () => {
     for (const result of [runAt(oldSha, "--dry-run"), runAt(oldSha)]) {
       expect(result.status).toBe(1);
       expect(result.stderr).toContain(
-        "FAIL: tools/forks.json declares paths under kit that are not forked at the pinned SHA; delete each entry, then rerun:\n  plugins/pstack/skills/s.md is no longer forked (unchanged)\n",
+        "FAIL: tools/forks.json declares paths under kit that are not forked at the pinned SHA; delete each entry, then rerun:\n  plugins/jstack/skills/s.md is no longer forked (unchanged)\n",
       );
     }
   });
 
   test("an upstream file the port lacks fails a run at the pinned SHA naming it, and nothing is written", () => {
     const { runAt, oldSha, port } = cli({ oldText: "one\n", newText: "one\n", localText: "one\n" });
-    const skill = join(port, "plugins/pstack/skills/s.md");
+    const skill = join(port, "plugins/jstack/skills/s.md");
     rmSync(skill);
     const failure =
       "FAIL: upstream files the port lacks at the pinned SHA; restore each or add it to exclude in tools/upstream.json, then rerun:\n" +
-      "  plugins/pstack/skills/s.md\n";
+      "  plugins/jstack/skills/s.md\n";
 
     for (const result of [runAt(oldSha, "--dry-run"), runAt(oldSha)]) {
       expect(result.status).toBe(1);
@@ -1676,11 +1676,11 @@ describe("sync CLI", () => {
     expect(local()).toBe("spawn a delegate_task\n");
     expect(pin()).toBe(newSha);
 
-    writeFileSync(join(port, "plugins/pstack/skills/s.md"), "the port's fork\n");
+    writeFileSync(join(port, "plugins/jstack/skills/s.md"), "the port's fork\n");
     writeFileSync(join(port, "tools/forks.json"), JSON.stringify({ kit: declareS("port-feature") }));
     const kept = run("--bootstrap");
     expect(kept.status).toBe(0);
-    expect(kept.stdout).toContain("fork kept: plugins/pstack/skills/s.md");
+    expect(kept.stdout).toContain("fork kept: plugins/jstack/skills/s.md");
     expect(local()).toBe("the port's fork\n");
   });
 

@@ -10,7 +10,7 @@ const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 describe("validateCodexMarketplace", () => {
   const manifest = (plugins) => JSON.stringify({ plugins });
   test("needs one entry whose name matches and whose path exists", () => {
-    const ok = { name: "pstack", source: { path: "./plugins/pstack" } };
+    const ok = { name: "pstack", source: { path: "./plugins/jstack" } };
     expect(() =>
       validateCodexMarketplace(manifest([ok]), { expectedName: "pstack", pathExists: () => true }),
     ).not.toThrow();
@@ -28,8 +28,8 @@ describe("validateCodexMarketplace", () => {
 
 describe("manifests", () => {
   const json = (rel) => JSON.parse(readFileSync(join(repoRoot, rel), "utf8"));
-  const claude = json("plugins/pstack/.claude-plugin/plugin.json");
-  const codex = json("plugins/pstack/.codex-plugin/plugin.json");
+  const claude = json("plugins/jstack/.claude-plugin/plugin.json");
+  const codex = json("plugins/jstack/.codex-plugin/plugin.json");
   const claudeMarketplace = json(".claude-plugin/marketplace.json");
   const codexMarketplace = json(".agents/plugins/marketplace.json");
   const devPackage = json("package.json");
@@ -40,7 +40,7 @@ describe("manifests", () => {
     expect(Object.values(shared(claude))).not.toContain(undefined);
     expect(shared(codex)).toEqual(shared(claude));
     expect(claudeMarketplace.owner).toEqual(claude.author);
-    expect(claudeMarketplace.plugins.map(({ name, source }) => [name, source])).toEqual([[claude.name, "./plugins/pstack"]]);
+    expect(claudeMarketplace.plugins.map(({ name, source }) => [name, source])).toEqual([[claude.name, "./plugins/jstack"]]);
     expect(codex.version).toBe(claude.version);
     expect(claudeMarketplace.plugins[0].version).toBe(claude.version);
     expect(devPackage.version).toBe(claude.version);
@@ -54,8 +54,8 @@ describe("manifests", () => {
   // Upstream ships this file, and tools/upstream.json excludes it from the sync.
   test("there is no root Agent Plugins manifest", () => {
     expect(
-      existsSync(join(repoRoot, "plugins/pstack/plugin.json")),
-      "delete plugins/pstack/plugin.json: Codex reads a plugin with that Agent Plugins manifest as an Agent Plugin and truncates each injected SKILL.md to 8,000 bytes, which cuts poteto-mode off mid-file",
+      existsSync(join(repoRoot, "plugins/jstack/plugin.json")),
+      "delete plugins/jstack/plugin.json: Codex reads a plugin with that Agent Plugins manifest as an Agent Plugin and truncates each injected SKILL.md to 8,000 bytes, which cuts poteto-mode off mid-file",
     ).toBe(false);
   });
 });
