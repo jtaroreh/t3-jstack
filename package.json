@@ -4,8 +4,8 @@
   "version": "2.1.0",
   "description": "The installer and development tooling for t3-jstack, Lauren Tan's pstack rewritten in place for T3 Code. The plugin itself lives in plugins/pstack.",
   "author": {
-    "name": "Christian Bager Bach Houmann",
-    "url": "https://github.com/chhoumann"
+    "name": "Joel Taroreh",
+    "url": "https://github.com/jtaroreh"
   },
   "homepage": "https://github.com/jtaroreh/t3-jstack",
   "repository": "https://github.com/jtaroreh/t3-jstack",
