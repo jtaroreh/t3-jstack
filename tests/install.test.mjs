@@ -31,11 +31,11 @@ import { doctorSheet, moveSheet } from "../tools/install/sheet.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const { roles, tiers } = JSON.parse(readFileSync(join(repoRoot, "plugins/pstack/models.json"), "utf8"));
-const FIX = "rerun `npx -y github:chhoumann/t3-pstack install`";
+const FIX = "rerun `npx -y github:jtaroreh/t3-jstack install`";
 
 const scratch = [];
 function tmp() {
-  const dir = realpathSync(mkdtempSync(join(tmpdir(), "t3-pstack-install-")));
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "t3-jstack-install-")));
   scratch.push(dir);
   return dir;
 }
@@ -51,7 +51,7 @@ const mode = (path) => statSync(path).mode & 0o777;
 // The plugin's own skills, and a doctor context that trusts the GitHub repo.
 const SKILL = (name) => readFileSync(join(repoRoot, "plugins/pstack/skills", name, "SKILL.md"), "utf8");
 const skills = new Map(["how", "why"].map((name) => [name, SKILL(name)]));
-const github = parseSource("chhoumann/t3-pstack", "/home/u");
+const github = parseSource("jtaroreh/t3-jstack", "/home/u");
 const context = { source: github, trusted: new Set([github.key]), version: "2.0.0-rc.3", skills };
 
 // A `claude` that records each call and changes nothing.
@@ -141,7 +141,7 @@ function claudeHome({ autoUpdate } = {}) {
   const dir = tmp();
   const user = {
     scope: "user",
-    installPath: `${dir}/plugins/cache/t3-pstack/t3-pstack/2.0.0-rc.3`,
+    installPath: `${dir}/plugins/cache/t3-jstack/t3-jstack/2.0.0-rc.3`,
     version: "2.0.0-rc.3",
     installedAt: "2026-10-06T08:38:28.344Z",
     lastUpdated: "2026-10-14T11:20:44.228Z",
@@ -150,26 +150,26 @@ function claudeHome({ autoUpdate } = {}) {
   const project = {
     scope: "project",
     projectPath: "/home/u",
-    installPath: `${dir}/plugins/cache/t3-pstack/t3-pstack/1.0.11`,
+    installPath: `${dir}/plugins/cache/t3-jstack/t3-jstack/1.0.11`,
     version: "1.0.11",
     installedAt: "2026-10-13T04:43:26.759Z",
     lastUpdated: "2026-10-13T04:43:26.759Z",
     gitCommitSha: "0000000000000000000000000000000000000000",
   };
   const other = { scope: "project", projectPath: "/home/u", installPath: "/x", version: "0.1.0" };
-  writeJson(join(user.installPath, ".claude-plugin/plugin.json"), { name: "t3-pstack", version: user.version });
+  writeJson(join(user.installPath, ".claude-plugin/plugin.json"), { name: "t3-jstack", version: user.version });
   for (const [name, text] of skills) {
     mkdirSync(join(user.installPath, "skills", name), { recursive: true });
     writeFileSync(join(user.installPath, "skills", name, "SKILL.md"), text);
   }
   writeJson(join(dir, "plugins/installed_plugins.json"), {
     version: 2,
-    plugins: { "t3-pstack@t3-pstack": [user, project], "other@market": [other] },
+    plugins: { "t3-jstack@t3-jstack": [user, project], "other@market": [other] },
   });
   writeJson(join(dir, "settings.json"), {
-    enabledPlugins: { "t3-pstack@t3-pstack": true },
+    enabledPlugins: { "t3-jstack@t3-jstack": true },
     extraKnownMarketplaces: {
-      "t3-pstack": { source: { source: "github", repo: "chhoumann/t3-pstack" }, ...(autoUpdate && { autoUpdate }) },
+      "t3-jstack": { source: { source: "github", repo: "jtaroreh/t3-jstack" }, ...(autoUpdate && { autoUpdate }) },
     },
   });
   return { dir, user, project, other };
@@ -192,7 +192,7 @@ describe("a stale other-scope Claude Code record", () => {
     expect(JSON.parse(readFileSync(path, "utf8"))).toEqual({
       version: 2,
       plugins: {
-        "t3-pstack@t3-pstack": [
+        "t3-jstack@t3-jstack": [
           user,
           { ...project, installPath: user.installPath, version: user.version, gitCommitSha: user.gitCommitSha, lastUpdated: user.lastUpdated },
         ],
@@ -221,7 +221,7 @@ describe("a stale other-scope Claude Code record", () => {
     writeFileSync(join(dir, "skills/how/SKILL.md"), SKILL("how"));
     const home = { harness: "claude", dir, from: ["default"], bin: "claude" };
     expect(doctorClaude(home, context)).toEqual([
-      { name: "marketplace", ok: true, detail: "chhoumann/t3-pstack" },
+      { name: "marketplace", ok: true, detail: "jtaroreh/t3-jstack" },
       { name: "installed", ok: true, detail: "2.0.0-rc.3" },
       { name: "enabled", ok: true, detail: "yes" },
       { name: "marketplace auto-update", ok: false, detail: "false", fix: FIX },
@@ -243,7 +243,7 @@ describe("a stale other-scope Claude Code record", () => {
     syncScopedRecords(dir);
     rmSync(join(dir, "skills"), { recursive: true });
     const settings = JSON.parse(readFileSync(join(dir, "settings.json"), "utf8"));
-    settings.extraKnownMarketplaces["t3-pstack"].autoUpdate = true;
+    settings.extraKnownMarketplaces["t3-jstack"].autoUpdate = true;
     writeJson(join(dir, "settings.json"), settings);
     expect(doctorClaude(home, context).filter((c) => !c.ok)).toEqual([]);
   });
@@ -267,7 +267,7 @@ describe("a stale other-scope Claude Code record", () => {
       { name: "installed", ok: false, detail: `2.0.0-rc.3, but its files at ${user.installPath} are missing`, fix: FIX },
     ]);
     expect(installClaude(home, context)).toEqual(["reinstalled 2.0.0-rc.3, whose files were missing"]);
-    expect(claude.calls()).toEqual(["plugin install t3-pstack@t3-pstack --scope user"]);
+    expect(claude.calls()).toEqual(["plugin install t3-jstack@t3-jstack --scope user"]);
   });
 
   test("install says so when the marketplace has no newer version to update to", () => {
@@ -276,7 +276,7 @@ describe("a stale other-scope Claude Code record", () => {
     const claude = fakeClaude();
     const home = { harness: "claude", dir, from: ["default"], bin: claude.bin };
     expect(installClaude(home, { ...context, version: "2.0.0-rc.4" })).toEqual(["the marketplace has no 2.0.0-rc.4, so it stays at 2.0.0-rc.3"]);
-    expect(claude.calls()).toEqual(["plugin marketplace update t3-pstack", "plugin update t3-pstack@t3-pstack --scope user"]);
+    expect(claude.calls()).toEqual(["plugin marketplace update t3-jstack", "plugin update t3-jstack@t3-jstack --scope user"]);
   });
 
   test("doctor reports settings.json that does not parse by path alone", () => {
@@ -296,12 +296,12 @@ describe("a stale other-scope Claude Code record", () => {
   });
 });
 
-describe("a t3-pstack marketplace from another source", () => {
+describe("a t3-jstack marketplace from another source", () => {
   function counterfeit() {
     const { dir } = claudeHome({ autoUpdate: true });
     const elsewhere = tmp();
     const settings = JSON.parse(readFileSync(join(dir, "settings.json"), "utf8"));
-    settings.extraKnownMarketplaces["t3-pstack"].source = { source: "directory", path: elsewhere };
+    settings.extraKnownMarketplaces["t3-jstack"].source = { source: "directory", path: elsewhere };
     writeJson(join(dir, "settings.json"), settings);
     rmSync(join(dir, "plugins/installed_plugins.json"));
     return { dir, elsewhere };
@@ -316,8 +316,8 @@ describe("a t3-pstack marketplace from another source", () => {
     expect(doctorClaude(home, context)[0]).toEqual({
       name: "marketplace",
       ok: false,
-      detail: `${elsewhere}, which is neither chhoumann/t3-pstack nor --source`,
-      fix: `if you trust it, rerun with --source ${elsewhere}; otherwise remove it with \`CLAUDE_CONFIG_DIR=${dir} claude plugin marketplace remove t3-pstack\`, then ${FIX}`,
+      detail: `${elsewhere}, which is neither jtaroreh/t3-jstack nor --source`,
+      fix: `if you trust it, rerun with --source ${elsewhere}; otherwise remove it with \`CLAUDE_CONFIG_DIR=${dir} claude plugin marketplace remove t3-jstack\`, then ${FIX}`,
     });
   });
 
@@ -336,8 +336,8 @@ describe("a t3-pstack marketplace from another source", () => {
 describe("--source", () => {
   test("reads owner/repo as GitHub even where that relative directory exists, and a URL to the same repository as the same source", () => {
     const cwd = tmp();
-    mkdirSync(join(cwd, "chhoumann/t3-pstack"), { recursive: true });
-    const r = spawnSync(process.execPath, [join(repoRoot, "tools/install.mjs"), "doctor", "--source", "chhoumann/t3-pstack", "--json"], {
+    mkdirSync(join(cwd, "jtaroreh/t3-jstack"), { recursive: true });
+    const r = spawnSync(process.execPath, [join(repoRoot, "tools/install.mjs"), "doctor", "--source", "jtaroreh/t3-jstack", "--json"], {
       cwd,
       env: { HOME: tmp(), PATH: tmp() },
       encoding: "utf8",
@@ -345,10 +345,10 @@ describe("--source", () => {
     expect({ status: r.status, stderr: r.stderr, source: r.status === 0 && JSON.parse(r.stdout).source }).toEqual({
       status: 0,
       stderr: "",
-      source: "chhoumann/t3-pstack",
+      source: "jtaroreh/t3-jstack",
     });
-    expect(parseSource("git@github.com:ChHoumann/t3-pstack.git", "/home/u").key).toBe(github.key);
-    expect(parseSource("https://github.com/chhoumann/t3-pstack", "/home/u").key).toBe(github.key);
+    expect(parseSource("git@github.com:Jtaroreh/t3-jstack.git", "/home/u").key).toBe(github.key);
+    expect(parseSource("https://github.com/jtaroreh/t3-jstack", "/home/u").key).toBe(github.key);
     expect(() => parseSource("./missing", cwd)).toThrow("--source ./missing: not owner/repo, a Git URL, or an existing directory");
   });
 });
@@ -442,12 +442,12 @@ describe("the model sheet", () => {
   test("moves a sheet with its mode, and leaves a file beside it that only shares the old temp name", () => {
     const { root, homes, sheet } = machine();
     writeFileSync(join(root, ".claude/t3-pstack-models.md"), SHEET, { mode: 0o600 });
-    writeFileSync(join(root, ".claude/t3-pstack-models.md.t3-pstack-link"), "mine\n");
+    writeFileSync(join(root, ".claude/t3-pstack-models.md.t3-jstack-link"), "mine\n");
 
     moveSheet(sheet, homes);
     expect(mode(sheet)).toBe(0o600);
-    expect(readFileSync(join(root, ".claude/t3-pstack-models.md.t3-pstack-link"), "utf8")).toBe("mine\n");
-    expect(readdirSync(join(root, ".claude")).sort()).toEqual(["t3-pstack-models.md", "t3-pstack-models.md.t3-pstack-link"]);
+    expect(readFileSync(join(root, ".claude/t3-pstack-models.md.t3-jstack-link"), "utf8")).toBe("mine\n");
+    expect(readdirSync(join(root, ".claude")).sort()).toEqual(["t3-pstack-models.md", "t3-pstack-models.md.t3-jstack-link"]);
   });
 
   test("leaves home sheets that disagree, and doctor says so", () => {
@@ -494,7 +494,7 @@ describe("the model sheet", () => {
         name: "machine sheet",
         ok: false,
         detail: "none, so every role runs on its skill's defaults",
-        fix: "run /t3-pstack:setup-pstack in a T3 thread",
+        fix: "run /t3-jstack:setup-pstack in a T3 thread",
         warn: true,
       },
     ]);
@@ -504,7 +504,7 @@ describe("the model sheet", () => {
       name: "machine sheet valid",
       ok: false,
       detail: 'bug-fix: "claude-opus" does not start with <providerInstanceId>/<modelId>; "how critics" is not a pstack role',
-      fix: "run /t3-pstack:setup-pstack in a T3 thread",
+      fix: "run /t3-jstack:setup-pstack in a T3 thread",
     });
   });
 

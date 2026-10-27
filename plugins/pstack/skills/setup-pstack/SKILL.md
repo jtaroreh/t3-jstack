@@ -11,6 +11,8 @@ Write the model sheet, `~/.config/t3-pstack/models.md` (`$XDG_CONFIG_HOME/t3-pst
 
 ### 1. Detect available models
 
+For Muse Code plugin loading or a Muse delegation target, read the [Muse Code adapter](../muse-code/SKILL.md) first. It separates plugin discovery from model execution readiness.
+
 Call `orchestrator_capabilities`, or `acp-mcp-call orchestrator_capabilities '{}'` where the T3 tools are not exposed. Its provider instances and their models are the dependable source. A target is valid only when its provider instance can run a child task and lists the model. Note each provider's own option IDs and values, such as `effort` on Claude and `reasoningEffort` on Codex and Grok. Never write a target you have not seen there. The aliases `inherit-parent` and `auto` are always valid.
 
 ### 2. Load current state
@@ -30,7 +32,7 @@ The default role-to-target mapping is the sheet shape in step 5 below. If the sh
 
 **(c) Show the roles and confirm.** Show every selected role with its entry. List unselected optional mode roles separately as available choices, without requiring their providers. Mark any selected target not in the detected set as needing a choice. Also list each line step 2 dropped. Ask whether to accept as-is or change specific roles, offering the detected targets plus `inherit-parent` and `auto` (both mean: this role runs on the parent chat's model) as the options. For panel roles (`arena runners`, `architect runners`, `interrogate reviewers`) the value is a list, and one subagent runs per entry, alias entries included, so the list length sets the count. A panel needs at least two model families among its targets. A model's family is the first segment of its ID's last `/` part, such as `claude`, `gpt`, or `grok`. `arena cross-judge pool` is also a list, but Arena selects one value from it whose model ran no candidate and whose family differs from the parent's when possible. `swarm workers` is the default target for every worker unless a race or comparison assigns another per arm.
 
-**(d) Ask about the session-start hook.** Ask whether t3-pstack's session-start hook should keep telling new chats when to enter `/poteto-mode`. Write `session hook: on` or `session hook: off`.
+**(d) Ask about the session-start hook.** Ask whether t3-jstack's session-start hook should keep telling new chats when to enter `/poteto-mode`. Write `session hook: on` or `session hook: off`.
 
 ### 4. Validate
 

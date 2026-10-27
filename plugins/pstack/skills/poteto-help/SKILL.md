@@ -10,7 +10,7 @@ Answer the user's question about pstack, hand them a prompt they can send, and l
 
 A message that asks for work, such as "use pstack to fix this bug", is not a help question. Read [`poteto-mode`](../poteto-mode/SKILL.md), do the work under it, and mention once that starting each task with `/poteto-mode` keeps it on.
 
-This file maps questions to the skills and guide pages that hold the answers. Those files own the details. Read the file you route to before you quote it, and trust it when it disagrees with this map. The links here point into the installed plugin, which the user may not be able to open, so give the user the file's public copy: `https://github.com/chhoumann/t3-pstack/blob/main/plugins/pstack/` followed by its path.
+This file maps questions to the skills and guide pages that hold the answers. Those files own the details. Read the file you route to before you quote it, and trust it when it disagrees with this map. The links here point into the installed plugin, which the user may not be able to open, so give the user the file's public copy: `https://github.com/jtaroreh/t3-jstack/blob/main/plugins/pstack/` followed by its path.
 
 ## Find out what they need
 
@@ -35,15 +35,15 @@ When the model sheet is missing and it matters, ask whether the user wants to pi
 
 ## Get set up
 
-1. Install t3-pstack per its [README](https://github.com/chhoumann/t3-pstack#readme). One `npx -y github:chhoumann/t3-pstack install` run installs it in every Claude Code and Codex config home T3 can run.
+1. Install t3-jstack per its [README](https://github.com/jtaroreh/t3-jstack#readme). One `npx -y github:jtaroreh/t3-jstack install` run installs it in every Claude Code and Codex config home T3 can run.
 2. Run [`/setup-pstack`](../setup-pstack/SKILL.md). It asks for a reasoning budget, maps a T3 provider and model to each role, and writes the model sheet. The sheet applies to new chats. Then it offers once each to generate a verification skill and a formal verification skill for the project, unless the project already has one.
 3. Start a real task with `/poteto-mode`, a goal, and a check that can pass or fail.
 
-Installing changes nothing until the user invokes a skill. Only `/setup-pstack` loads from the user's words. The [README](https://github.com/chhoumann/t3-pstack/blob/main/README.md) and [guide page 1](https://github.com/cursor/plugins/blob/main/pstack/docs/guide/01-setup.md) have the details. Offer to word their first prompt with them, per [`references/prompting.md`](references/prompting.md).
+Installing changes nothing until the user invokes a skill. Only `/setup-pstack` loads from the user's words. The [README](https://github.com/jtaroreh/t3-jstack/blob/main/README.md) and [guide page 1](https://github.com/cursor/plugins/blob/main/pstack/docs/guide/01-setup.md) have the details. Offer to word their first prompt with them, per [`references/prompting.md`](references/prompting.md).
 
 If cost is the worry, say where the tokens go and how to spend fewer. pstack spends extra tokens on subagents and review panels. Rerun `/setup-pstack` and pick a smaller budget or cheaper models. A role set to `auto` or `inherit-parent` runs on the chat's model, which saves tokens when the chat runs on a cheaper model. A shorter panel list runs fewer subagents, one for each entry. Save `/poteto-mode` for work that needs rigor.
 
-t3-pstack is pstack rewritten for T3 Code, and it installs in Claude Code and Codex with `npx -y github:chhoumann/t3-pstack install`.
+t3-jstack is pstack rewritten for T3 Code, and it installs in Claude Code and Codex with `npx -y github:jtaroreh/t3-jstack install`.
 
 Its workflow skills, including `/poteto-mode`, `/how`, `/why`, and `/teach`, dispatch subagents through T3's `delegate_task` with per-role models, so those parts need a T3 thread.
 
@@ -54,8 +54,8 @@ Its workflow skills, including `/poteto-mode`, `/how`, `/why`, and `/teach`, dis
 Whether `/poteto-mode` stays on depends on how the user starts it:
 
 - Invoking `/poteto-mode` attaches the skill to one message. It fades as the chat moves on, so start each new task with it.
-- Where the harness runs t3-pstack's session-start hook, each new chat is told when to enter `/poteto-mode` on its own.
-- Skill names differ by harness: `/t3-pstack:poteto-mode` on Claude Code, `$t3-pstack:poteto-mode` on Codex. This file writes every skill as `/<name>`.
+- Where the harness runs t3-jstack's session-start hook, each new chat is told when to enter `/poteto-mode` on its own.
+- Skill names differ by harness: `/t3-jstack:poteto-mode` on Claude Code, `$t3-jstack:poteto-mode` on Codex. This file writes every skill as `/<name>`.
 
 Mid-chat, "new task" makes the mode match a fresh playbook. `/poteto-mode` already uses `poteto-agent` for the subagents its playbook steps spawn. To get the same style from a subagent of your own, open its `delegate_task` brief the way poteto-mode's Subagents section briefs a `poteto-agent`.
 

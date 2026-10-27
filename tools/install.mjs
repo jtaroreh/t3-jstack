@@ -1,19 +1,19 @@
 #!/usr/bin/env node
-// t3-pstack's installer. `install`, or `update`, the same command, brings
+// t3-jstack's installer. `install`, or `update`, the same command, brings
 // every Claude Code and Codex home T3 can run to this package's version of
-// t3-pstack, trusts the Codex session-start hook, and moves the model sheet to
+// t3-jstack, trusts the Codex session-start hook, and moves the model sheet to
 // its one path per machine. Each step converges, so a second run changes
 // nothing. `doctor` checks the same homes and writes nothing itself, though
 // the Codex app-server it starts refreshes a Git marketplace, as any T3 Codex
 // thread does. Both exit 1 when a check fails.
 //
-// Each home's t3-pstack marketplace must come from chhoumann/t3-pstack or from
+// Each home's t3-jstack marketplace must come from jtaroreh/t3-jstack or from
 // this run's --source. A home whose marketplace has another source, such as a
 // local --source from an earlier run, gets nothing installed and no hook
 // trusted, and doctor fails it with that source.
 //
-//   npx -y github:chhoumann/t3-pstack <install|update|doctor>
-//     --source <owner/repo|git URL|dir>   marketplace source, default chhoumann/t3-pstack
+//   npx -y github:jtaroreh/t3-jstack <install|update|doctor>
+//     --source <owner/repo|git URL|dir>   marketplace source, default jtaroreh/t3-jstack
 //     --claude-home <dir>, --codex-home <dir>   more homes, repeatable
 //     --catalog <file>   an orchestrator_capabilities dump to check the sheet's targets against
 //     --json
@@ -38,7 +38,7 @@ const HARNESSES = {
 };
 
 const USAGE =
-  "usage: t3-pstack <install|update|doctor> [--source <owner/repo|git URL|dir>] " +
+  "usage: t3-jstack <install|update|doctor> [--source <owner/repo|git URL|dir>] " +
   "[--claude-home <dir>]... [--codex-home <dir>]... [--catalog <file>] [--runtime local|cloud] [--agystack-source <dir>] [--json]";
 
 // What to converge on comes from the plugin this run installs: the local
@@ -126,7 +126,7 @@ async function run(argv, env, home) {
 }
 
 function render({ command, version, source, settings, homes, sheet, runtime, failed, warnings }, home) {
-  const lines = [`t3-pstack ${version} from ${source}`];
+  const lines = [`t3-jstack ${version} from ${source}`];
   lines.push(`T3 settings: ${settings.path}${settings.error ? ` (${settings.error})` : `, ${settings.instances} Claude Code or Codex instances`}`);
   const section = (title, steps, checks) => {
     lines.push("", title);
@@ -161,6 +161,6 @@ try {
     process.exitCode = report.failed ? 1 : 0;
   }
 } catch (err) {
-  console.error(`t3-pstack: ${err.message}`);
+  console.error(`t3-jstack: ${err.message}`);
   process.exitCode = 2;
 }

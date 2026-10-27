@@ -547,8 +547,8 @@ describe("plan, changes, apply", () => {
       expect.stringContaining(`${hooks} changed, which stops its hook`),
     ]);
     const marketplace = ".agents/plugins/marketplace.json";
-    writeFileSync(join(root, marketplace), readFileSync(join(root, marketplace), "utf8").replace('"name": "t3-pstack",\n      "source"', '"name": "other",\n      "source"'));
-    expect(problems(root)).toContainEqual(expect.stringContaining('plugin name "other" != Codex manifest name "t3-pstack"'));
+    writeFileSync(join(root, marketplace), readFileSync(join(root, marketplace), "utf8").replace('"name": "t3-jstack",\n      "source"', '"name": "other",\n      "source"'));
+    expect(problems(root)).toContainEqual(expect.stringContaining('plugin name "other" != Codex manifest name "t3-jstack"'));
   });
 
   test("problems reports a hook path that resolves outside the plugin, through .. or through a symlink", () => {
