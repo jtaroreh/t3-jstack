@@ -5,7 +5,10 @@ import { CloudController, dispatchOptions } from "./cloud-controller.mjs";
 import { CloudError, RunStore, validateId } from "./cloud-state.mjs";
 
 const help = `Usage: cloud-run.mjs dispatch --client-request-id ID --manifest FILE [options]
-       cloud-run.mjs status|resume|cancel|harvest|attach RUN_ID [--json]
+       cloud-run.mjs status|resume|cancel|harvest|attach|progress|artifacts RUN_ID [--json]
+       cloud-run.mjs steer RUN_ID --task N|all --instruction TEXT --request-id ID [--json]
+       cloud-run.mjs questions RUN_ID [--cursor CURSOR] [--json]
+       cloud-run.mjs reply RUN_ID --task N --seq N --text TEXT --request-id ID [--json]
        cloud-run.mjs list [--json]
 
 Dispatch options:
@@ -39,7 +42,7 @@ within its scan cap; an incomplete scan stays unresolved.
 cancel requests remote cancellation, then checks its outcome. Killing this
 controller or interrupting attach does not cancel the remote execution.
 attach streams safe progress counters to stderr and a final record to stdout.
-It omits raw worker logs and can harvest through the engine when it finishes.
+It omits raw worker logs and never downloads artifacts. Use harvest explicitly.
 harvest does not hold the run's mutation lock while it downloads, so cancel
 stays available; it records download metadata separately from the remote outcome.
 Any failing verb writes the last 50 redacted stderr lines to a 0600 file beside
@@ -56,6 +59,7 @@ try {
   try {
     parsed = parseArgs({ allowPositionals: true, options: {
       ...Object.fromEntries([...dispatchOptions.filter((name) => name !== "vertex"), "client-request-id", "manifest", "agystack-source", "controller-task-id"].map((name) => [name, { type: "string" }])),
+      ...Object.fromEntries(["task", "seq", "text", "instruction", "request-id", "cursor"].map(name => [name, { type: "string" }])),
       vertex: { type: "boolean" }, json: { type: "boolean" }, help: { type: "boolean", short: "h" },
     } });
   } catch { throw new CloudError("INVALID_ARGUMENT", "Unknown or malformed arguments. Use --help."); }
@@ -64,14 +68,16 @@ try {
   if (values.help) process.stdout.write(help);
   else {
     const [verb, id] = positionals;
-    if (!["dispatch", "status", "resume", "cancel", "harvest", "list", "attach"].includes(verb)
+    if (!["dispatch", "status", "resume", "cancel", "harvest", "list", "attach", "progress", "artifacts", "steer", "questions", "reply"].includes(verb)
       || positionals.length !== (["dispatch", "list"].includes(verb) ? 1 : 2)
-      || (verb !== "dispatch" && Object.keys(values).some((key) => key !== "json"))) throw new CloudError("INVALID_ARGUMENT", "Use dispatch, status, resume, cancel, harvest, list or attach with the arguments shown in --help.");
+      || (verb === "dispatch" && ["task", "seq", "text", "instruction", "request-id", "cursor"].some(key => key in values))
+      || (verb !== "dispatch" && Object.keys(values).some(key => !["json", ...({ questions: ["cursor"], steer: ["task", "instruction", "request-id"], reply: ["task", "seq", "text", "request-id"] }[verb] ?? [])].includes(key)))) throw new CloudError("INVALID_ARGUMENT", "Use a supported verb and the arguments shown in --help.");
     if (id) validateId(id);
     const store = new RunStore();
     const controller = new CloudController(store);
-    const result = verb === "list" ? store.list() : verb === "dispatch" ? await controller.dispatch(values) : await controller[verb === "resume" ? "status" : verb](id);
+    const result = verb === "list" ? store.list() : verb === "dispatch" ? await controller.dispatch(values) : ["steer", "questions", "reply"].includes(verb) ? await controller.message(id, verb, values) : await controller[verb === "resume" ? "status" : verb](id);
     if (json) process.stdout.write(`${JSON.stringify(result)}\n`);
+    else if (["steer", "questions", "reply", "progress", "artifacts"].includes(verb)) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     else for (const record of Array.isArray(result) ? result : [result]) {
       process.stdout.write(`${record.id} ${record.state}\n`);
       if (record.state === "corrupt") process.stdout.write(`Code: ${record.code}\n`);

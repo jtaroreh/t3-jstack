@@ -2,8 +2,12 @@
 // 0600 diagnostics files. There is no win32 fallback by design.
 import { readFileSync, realpathSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { artifactRoot, listArtifacts } from "./cloud-artifacts.mjs";
 import { CloudError, hash, runId, sessionId, terminal } from "./cloud-state.mjs";
 import { enginePath, executable, parseDryRun, parseJson, runProcess } from "./cloud-process.mjs";
+
+import { workerMessage } from "./cloud-messages.mjs";
 
 const now = () => new Date().toISOString();
 // Cloud Run caps job and execution resource names at 63 characters (job names are
@@ -336,6 +340,7 @@ export class CloudController {
     record.observedAt = now();
     return this.save(record);
   }
+  async message(id, verb, options) { return workerMessage(this, id, verb, options); }
   async status(id) { return this.store.locked(id, () => this.refresh(this.store.require(id))); }
   async cancel(id) {
     return this.store.locked(id, async () => {
@@ -366,6 +371,7 @@ export class CloudController {
     return this.store.locked(id, async () => {
       const record = await this.store.locked(id, () => {
         const current = this.store.require(id);
+        artifactRoot(current);
         current.harvest = { status: "fetching", startedAt: now(), directory: join(current.cwd, ".slices", current.sessionId) };
         return this.save(current);
       });
@@ -374,6 +380,10 @@ export class CloudController {
       try {
         // Downloads can outlive any fixed timeout; attach uses the same policy.
         result = await this.external(id, "harvest", executable("python3"), args, { cwd: record.cwd, timeout: 0 });
+        if (result.code === 0) {
+          const root = artifactRoot(record);
+          result = await this.external(id, "harvest-results", executable("python3"), ["-u", fileURLToPath(new URL("./cloud-results.py", import.meta.url)), "--session-id", record.sessionId, "--gcs-bucket", record.plan.gcsBucket, "--max-tasks", String(record.plan.tasksCount), "--destination", root], { cwd: record.cwd, timeout: 0 });
+        }
       } catch (error) {
         await this.store.locked(id, () => {
           const current = this.store.require(id);
@@ -398,11 +408,16 @@ export class CloudController {
       });
     }, "harvest");
   }
+  artifacts(id) { return listArtifacts(this.store.require(id)); }
+  progress(id) { return this.store.progress(id); }
   async attach(id) {
+    return this.store.locked(id, () => this.observe(id), "observe");
+  }
+  async observe(id) {
     const record = await this.status(id);
     if (!record.execution) throw new CloudError("EXECUTION_UNRESOLVED", "Use resume to recover an execution handle before attaching.");
     // Observation holds no mutation lock, so a separate cancel command can run.
-    const result = await this.external(id, "attach", executable("python3"), ["-u", record.engine, ...planFlags(record.plan), "--wait-execution", record.execution, "--session-id", record.sessionId, "--gcs-prefix", `swarms/${record.sessionId}`], { cwd: record.cwd, timeout: 0, stream: true });
+    const result = await this.external(id, "attach", executable("python3"), ["-u", fileURLToPath(new URL("./cloud-observe.py", import.meta.url)), "--execution", record.execution, "--project", record.plan.project, "--region", record.plan.region, "--tasks", String(record.plan.tasksCount)], { cwd: record.cwd, timeout: 0, stream: true, onProgress: counts => this.store.recordProgress(id, counts) });
     const refreshed = await this.status(id);
     if (result.code !== 0) {
       const diagnostics = this.diagnostics(record, "attach", result.stderr);
