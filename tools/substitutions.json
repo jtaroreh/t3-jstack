@@ -8,13 +8,13 @@
     },
     {
       "pattern": "`https://github.com/cursor/plugins/blob/main/pstack/` followed by its path",
-      "replacement": "`https://github.com/jtaroreh/t3-jstack/blob/main/plugins/pstack/` followed by its path",
+      "replacement": "`https://github.com/jtaroreh/t3-jstack/blob/main/plugins/jstack/` followed by its path",
       "rationale": "the public copy of this port's file (Per-skill notes: poteto-help)",
       "files": "^skills/poteto-help/SKILL\\.md$"
     },
     {
       "pattern": "- No `~/.cursor/rules/pstack-models.mdc` means `/setup-pstack` hasn't run for this user",
-      "replacement": "- No model sheet (`~/.config/t3-pstack/models.md`, see `/setup-pstack`) means `/setup-pstack` hasn't run for this user",
+      "replacement": "- No model sheet (`~/.config/t3-jstack/models.md`, see `/setup-jstack`) means `/setup-jstack` hasn't run for this user",
       "rationale": "the T3 sheet replaces the Cursor rule (The sheet)",
       "files": "^skills/poteto-help/SKILL\\.md$"
     },
@@ -116,7 +116,7 @@
     },
     {
       "pattern": "| The rule from `/setup-pstack` applies to new chats. Start one. |",
-      "replacement": "| The sheet from `/setup-pstack` applies to new chats. Start one. |",
+      "replacement": "| The sheet from `/setup-jstack` applies to new chats. Start one. |",
       "rationale": "the T3 sheet replaces the Cursor rule",
       "files": "^skills/poteto-help/SKILL\\.md$"
     },
@@ -260,7 +260,7 @@
     },
     {
       "pattern": "Per-role lines in the `/setup-pstack` rule override",
-      "replacement": "Per-role lines in the model sheet that `/setup-pstack` writes override",
+      "replacement": "Per-role lines in the model sheet that `/setup-jstack` writes override",
       "rationale": "The sheet",
       "files": "^skills/poteto-mode/SKILL\\.md$"
     },

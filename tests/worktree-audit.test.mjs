@@ -8,9 +8,9 @@ import { fileURLToPath } from "node:url";
 import { validatePluginLayout } from "../tools/generate.mjs";
 
 const audit = fileURLToPath(
-  new URL("../plugins/pstack/skills/poteto-mode/scripts/worktree-audit.sh", import.meta.url),
+  new URL("../plugins/jstack/skills/poteto-mode/scripts/worktree-audit.sh", import.meta.url),
 );
-const pluginRoot = fileURLToPath(new URL("../plugins/pstack", import.meta.url));
+const pluginRoot = fileURLToPath(new URL("../plugins/jstack", import.meta.url));
 const TOOLS = ["git", "jq", "du", "awk", "sort", "date", "mktemp", "grep", "head", "rm", "xargs", "stat"];
 
 const roots = [];

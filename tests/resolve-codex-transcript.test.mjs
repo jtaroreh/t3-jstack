@@ -19,10 +19,10 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 
-const SCRIPTS = join(import.meta.dir, "../plugins/pstack/skills/poteto-mode/scripts");
+const SCRIPTS = join(import.meta.dir, "../plugins/jstack/skills/poteto-mode/scripts");
 const RESOLVER = join(SCRIPTS, "resolve-codex-transcript.ts");
 const LAUNCHER = join(SCRIPTS, "resolve-codex-transcript");
-const REFLECT = readFileSync(join(import.meta.dir, "../plugins/pstack/skills/reflect/SKILL.md"), "utf8");
+const REFLECT = readFileSync(join(import.meta.dir, "../plugins/jstack/skills/reflect/SKILL.md"), "utf8");
 const CHAT = "00000000-1111-2222-3333-444444444444";
 const OTHER = "00000000-1111-2222-3333-555555555555";
 const OPENING = "Reflect on this synthetic request.";
@@ -384,7 +384,7 @@ describe("resolve-codex-transcript", () => {
     const command = REFLECT.match(/^("<plugin root>\/skills\/poteto-mode\/scripts\/resolve-codex-transcript" .*)$/m)?.[1];
     if (command === undefined) throw new Error("reflect/SKILL.md has no resolver command");
     const plugin = join(root, "plugin install");
-    symlinkSync(join(import.meta.dir, "../plugins/pstack"), plugin);
+    symlinkSync(join(import.meta.dir, "../plugins/jstack"), plugin);
     const env = { PATH: process.env.PATH, HOME: root, CODEX_HOME: home, CODEX_THREAD_ID: CHAT };
     const launched = Bun.spawnSync(["sh", "-c", command.replace("<plugin root>", plugin)], { env });
     expect(launched.stderr.toString()).toBe("");

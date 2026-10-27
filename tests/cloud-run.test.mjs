@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repo = realpathSync(fileURLToPath(new URL("..", import.meta.url)));
-const cli = join(repo, "plugins/pstack/skills/t3-agystack/scripts/cloud-run.mjs");
+const cli = join(repo, "plugins/jstack/skills/t3-agystack/scripts/cloud-run.mjs");
 const node = spawnSync("which", ["node"], { encoding: "utf8" }).stdout.trim();
 const fixtures = [];
 afterEach(() => { for (const f of fixtures.splice(0)) f.dispose(); });

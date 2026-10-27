@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { enginePath } from "../../plugins/pstack/skills/t3-agystack/scripts/cloud-process.mjs";
+import { enginePath } from "../../plugins/jstack/skills/t3-agystack/scripts/cloud-process.mjs";
 
 function probe(name, args, env, timeout) {
   const result = spawnSync(name, args, { env, encoding: "utf8", timeout, maxBuffer: 4096, windowsHide: true });

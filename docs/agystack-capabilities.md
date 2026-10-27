@@ -11,11 +11,11 @@ This pass used the local `pstack-agy` source and `cursor_pstack_comparison.md` a
 - Durable progress extends `attach` and adds `progress`. It retains 256 allowlisted aggregate events across observation restarts. A dedicated Cloud Run observer avoids the engine's implicit downloads. Tests inject split, malformed, oversized, and credential-bearing output. Observation never holds the cancellation lock. No worker transcripts are inserted into T3.
 - Artifact discovery adds local paths, sizes, hashes, and quarantine status through `artifacts`. Harvesting also fetches optional `results.tsv` files omitted by the native harvester. Subprocess checks cover missing downloads, failures, interruption, and symlink escape attempts. A Python storage fixture verifies exact session keys and atomic TSV replacement.
 
-See [cloud operations](../plugins/pstack/skills/t3-agystack/references/cloud-operations.md), [candidate ranking](../plugins/pstack/skills/swarm/references/candidate-ranking.md), and [bounded recovery](../plugins/pstack/skills/poteto-mode/references/task-recovery.md).
+See [cloud operations](../plugins/jstack/skills/t3-agystack/references/cloud-operations.md), [candidate ranking](../plugins/jstack/skills/swarm/references/candidate-ranking.md), and [bounded recovery](../plugins/jstack/skills/poteto-mode/references/task-recovery.md).
 
 ## Existing owners retained
 
-Model tiers, independent review roles, and provider options belong to the model sheet and setup-pstack. T3 lifecycle tools own scheduling and child cancellation. The cloud bridge already owns dispatch, launch recovery, remote cancellation, attachment, and harvesting. Agystack's engine already supplies matrix manifests and cloud partner-model execution. These capabilities were retained rather than copied into a competing controller.
+Model tiers, independent review roles, and provider options belong to the model sheet and setup-jstack. T3 lifecycle tools own scheduling and child cancellation. The cloud bridge already owns dispatch, launch recovery, remote cancellation, attachment, and harvesting. Agystack's engine already supplies matrix manifests and cloud partner-model execution. These capabilities were retained rather than copied into a competing controller.
 
 Task notes already distinguish durable deliverables from scratch evidence and link verification artifacts. Recovery extends that note rather than creating another state database.
 

@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { agentSkills } from "../tools/generate.mjs";
 import { sheetCases, writeSheet } from "./session-hook-sheets.mjs";
 
-const pluginRoot = fileURLToPath(new URL("../plugins/pstack/", import.meta.url));
+const pluginRoot = fileURLToPath(new URL("../plugins/jstack/", import.meta.url));
 const mandate = readFileSync(join(pluginRoot, "hooks/session-start-context.md"), "utf8");
 const codexManifest = JSON.parse(readFileSync(join(pluginRoot, ".codex-plugin/plugin.json"), "utf8"));
 
@@ -49,7 +49,7 @@ function runHook(runtime, sheet, command = sessionStart[runtimes[runtime].hooks]
   const sheetRoot = join(home, sheetDir);
   if (sheet !== null) {
     mkdirSync(sheetRoot);
-    writeSheet(join(sheetRoot, "t3-pstack-models.md"), sheet);
+    writeSheet(join(sheetRoot, "t3-jstack-models.md"), sheet);
   }
   try {
     const r = spawnSync("sh", ["-c", command], {
@@ -123,14 +123,14 @@ describe("the machine sheet", () => {
   test.each(["claude", "codex"])("decides over the %s home sheet", (runtime) => {
     const home = mkdtempSync(join(tmpdir(), "pstack-hook-"));
     try {
-      const machineSheet = join(home, ".config/t3-pstack/models.md");
-      mkdirSync(join(home, ".config/t3-pstack"), { recursive: true });
+      const machineSheet = join(home, ".config/t3-jstack/models.md");
+      mkdirSync(join(home, ".config/t3-jstack"), { recursive: true });
       mkdirSync(join(home, `.${runtime}`));
       writeFileSync(machineSheet, "session hook: off\n");
-      writeFileSync(join(home, `.${runtime}`, "t3-pstack-models.md"), "session hook: on\n");
+      writeFileSync(join(home, `.${runtime}`, "t3-jstack-models.md"), "session hook: on\n");
       expect(run(runtime, home)).toBe("");
       writeFileSync(machineSheet, "session hook: on\n");
-      writeFileSync(join(home, `.${runtime}`, "t3-pstack-models.md"), "session hook: off\n");
+      writeFileSync(join(home, `.${runtime}`, "t3-jstack-models.md"), "session hook: off\n");
       expect(run(runtime, home)).toBe(mandate);
     } finally {
       rmSync(home, { recursive: true, force: true });
@@ -140,10 +140,36 @@ describe("the machine sheet", () => {
   test.each(["claude", "codex"])("moves with XDG_CONFIG_HOME on %s", (runtime) => {
     const home = mkdtempSync(join(tmpdir(), "pstack-hook-"));
     try {
-      mkdirSync(join(home, "xdg/t3-pstack"), { recursive: true });
-      writeFileSync(join(home, "xdg/t3-pstack/models.md"), "session hook: off\n");
+      mkdirSync(join(home, "xdg/t3-jstack"), { recursive: true });
+      writeFileSync(join(home, "xdg/t3-jstack/models.md"), "session hook: off\n");
       expect(run(runtime, home)).toBe(mandate);
       expect(run(runtime, home, { XDG_CONFIG_HOME: join(home, "xdg") })).toBe("");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  test.each(["claude", "codex"])("falls back to the t3-pstack machine sheet on %s", (runtime) => {
+    const home = mkdtempSync(join(tmpdir(), "pstack-hook-"));
+    try {
+      mkdirSync(join(home, ".config/t3-pstack"), { recursive: true });
+      writeFileSync(join(home, ".config/t3-pstack/models.md"), "session hook: off\n");
+      expect(run(runtime, home)).toBe("");
+      writeFileSync(join(home, ".config/t3-pstack/models.md"), "session hook: on\n");
+      expect(run(runtime, home)).toBe(mandate);
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  test.each(["claude", "codex"])("prefers the new machine sheet over the legacy one on %s", (runtime) => {
+    const home = mkdtempSync(join(tmpdir(), "pstack-hook-"));
+    try {
+      mkdirSync(join(home, ".config/t3-jstack"), { recursive: true });
+      mkdirSync(join(home, ".config/t3-pstack"), { recursive: true });
+      writeFileSync(join(home, ".config/t3-jstack/models.md"), "session hook: on\n");
+      writeFileSync(join(home, ".config/t3-pstack/models.md"), "session hook: off\n");
+      expect(run(runtime, home)).toBe(mandate);
     } finally {
       rmSync(home, { recursive: true, force: true });
     }
@@ -160,14 +186,31 @@ describe("without a machine sheet, each host reads only its own home sheet", () 
           encoding: "utf8",
         }).stdout;
       mkdirSync(join(home, ".codex"));
-      writeFileSync(join(home, ".codex", "t3-pstack-models.md"), "session hook: off\n");
+      writeFileSync(join(home, ".codex", "t3-jstack-models.md"), "session hook: off\n");
       expect(run("claude")).toBe(mandate);
       expect(run("codex")).toBe("");
       rmSync(join(home, ".codex"), { recursive: true });
       mkdirSync(join(home, ".claude"));
-      writeFileSync(join(home, ".claude", "t3-pstack-models.md"), "session hook: off\n");
+      writeFileSync(join(home, ".claude", "t3-jstack-models.md"), "session hook: off\n");
       expect(run("claude")).toBe("");
       expect(run("codex")).toBe(mandate);
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  test("a legacy t3-pstack home sheet still counts until the installer moves it", () => {
+    const home = mkdtempSync(join(tmpdir(), "pstack-hook-"));
+    try {
+      const run = (runtime) =>
+        spawnSync("sh", ["-c", sessionStart[runtime].hooks[0].command], {
+          env: { PATH: process.env.PATH, HOME: home, CLAUDE_PLUGIN_ROOT: pluginRoot },
+          encoding: "utf8",
+        }).stdout;
+      mkdirSync(join(home, ".codex"));
+      writeFileSync(join(home, ".codex", "t3-pstack-models.md"), "session hook: off\n");
+      expect(run("codex")).toBe("");
+      expect(run("claude")).toBe(mandate);
     } finally {
       rmSync(home, { recursive: true, force: true });
     }

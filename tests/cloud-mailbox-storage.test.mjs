@@ -22,7 +22,7 @@ function fixture() {
       writeFileSync(objects, JSON.stringify(items));
     },
     page(cursor) {
-      const result = spawnSync("python3", [resolve("plugins/pstack/skills/t3-agystack/scripts/cloud-mailbox.py"), "--engine", join(engine, "cloud_dispatch.py"), "--session-id", "t3-test", "--gcs-bucket", "test-bucket", "--max-tasks", "1", "--verb", "questions", ...(cursor ? ["--cursor", cursor] : [])], { encoding: "utf8", env: { ...process.env, PYTHONPATH: modules, PYTHONDONTWRITEBYTECODE: "1", MAILBOX_OBJECTS: objects, LIST_LOG: log } });
+      const result = spawnSync("python3", [resolve("plugins/jstack/skills/t3-agystack/scripts/cloud-mailbox.py"), "--engine", join(engine, "cloud_dispatch.py"), "--session-id", "t3-test", "--gcs-bucket", "test-bucket", "--max-tasks", "1", "--verb", "questions", ...(cursor ? ["--cursor", cursor] : [])], { encoding: "utf8", env: { ...process.env, PYTHONPATH: modules, PYTHONDONTWRITEBYTECODE: "1", MAILBOX_OBJECTS: objects, LIST_LOG: log } });
       expect(result.status, result.stderr).toBe(0); return JSON.parse(result.stdout);
     },
   };

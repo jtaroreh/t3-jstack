@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { rankCandidates } from "../plugins/pstack/skills/swarm/scripts/rank-candidates.mjs";
+import { rankCandidates } from "../plugins/jstack/skills/swarm/scripts/rank-candidates.mjs";
 const metrics = [{ name: "score", direction: "max" }, { name: "latency", direction: "min" }];
 const c = (id, score, latency, status = "verified") => ({ id, metrics: { score, latency }, status });
 test("ranking honors directions, deterministic ties, verification and missing metrics", () => {
@@ -11,7 +11,7 @@ test("ranking honors directions, deterministic ties, verification and missing me
   try {
     const input = join(dir, "candidates.json");
     writeFileSync(input, JSON.stringify([c("b", 10, 4), c("a", 10, 4), c("fast", 9, 1), c("failed", 999, 0, "failed"), c("missing", 20), c("string", "20", 1)]));
-    const args = ["plugins/pstack/skills/swarm/scripts/rank-candidates.mjs", "--input", input, "--metric", "score:max", "--metric", "latency:min", "--json"];
+    const args = ["plugins/jstack/skills/swarm/scripts/rank-candidates.mjs", "--input", input, "--metric", "score:max", "--metric", "latency:min", "--json"];
     const run = spawnSync("node", args, { encoding: "utf8" });
     expect(run.status, run.stderr).toBe(0);
     const result = JSON.parse(run.stdout);

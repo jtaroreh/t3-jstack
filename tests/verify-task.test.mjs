@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, sym
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-const cli = fileURLToPath(new URL("../plugins/pstack/skills/poteto-mode/scripts/verify-task.mjs", import.meta.url));
+const cli = fileURLToPath(new URL("../plugins/jstack/skills/poteto-mode/scripts/verify-task.mjs", import.meta.url));
 const roots = [];
 afterEach(() => roots.splice(0).forEach(p => rmSync(p, { recursive: true, force: true })));
 function fixture(command = "test -f fixed", limit = 2, subdir = false) {

@@ -7,12 +7,11 @@
 // Sources of truth:
 //   VERSION  -> the "version" field in the Claude Code and Codex manifests,
 //               the Claude Code marketplace entry, and package.json
-//   CHANGES.md must carry a heading for the current VERSION (release completeness)
-//   plugins/pstack/models.json (the T3 model policy: tier defaults and roles)
+//   plugins/jstack/models.json (the T3 model policy: tier defaults and roles)
 //     -> each model-consuming skill's "## Models" section, interrogate's
-//        reviewer table, and setup-pstack's sheet block (tools/derive-t3.mjs)
-//   plugins/pstack/agents/*.md -> the "agents" list in
-//     plugins/pstack/.claude-plugin/plugin.json (a list replaces the default
+//        reviewer table, and setup-jstack's sheet block (tools/derive-t3.mjs)
+//   plugins/jstack/agents/*.md -> the "agents" list in
+//     plugins/jstack/.claude-plugin/plugin.json (a list replaces the default
 //     agents/ directory, so it names every agent)
 //   LICENSE, LICENSE-cursor-team-kit, LICENSE-thermos, NOTICE-skills.md
 //     -> copies under poteto-mode/references/licenses/, so the notices ship
@@ -40,7 +39,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
 
-import { panelFamilies, parseEntry } from "../plugins/pstack/skills/setup-pstack/scripts/t3-sheet.mjs";
+import { panelFamilies, parseEntry } from "../plugins/jstack/skills/setup-jstack/scripts/t3-sheet.mjs";
 import { applyRegions, parseFrontmatter, ROUTED_SKILL, t3Regions } from "./derive-t3.mjs";
 import { FROZEN_HOOKS, hookDigest, PLUGIN, SKILLS } from "./plugin.mjs";
 import { pathIsInside, validateSkillsTree, walk } from "./validate-skills.mjs";
@@ -82,45 +81,6 @@ export function stampVersion(text, version, file) {
     throw new Error(`${file}: expected exactly 1 "version" field, found ${fields.length}`);
   }
   return text.replace(/("version"\s*:\s*)"[^"]*"/, `$1"${version}"`);
-}
-
-// The lines outside fenced code blocks. A fence opens at three or more
-// backticks or tildes indented at most three spaces, and closes at the next
-// line that holds nothing but at least as many of the same character.
-function outsideFences(lines) {
-  let fence = null;
-  return lines.filter((line) => {
-    const [, mark, after] = line.match(/^ {0,3}(`{3,}|~{3,})(.*)/) ?? [];
-    if (fence) {
-      if (mark?.startsWith(fence) && !after.trim()) fence = null;
-      return false;
-    }
-    if (mark) fence = mark;
-    return !mark;
-  });
-}
-
-// Plugin auto-update installs by version number, so a CHANGES entry whose
-// VERSION bump was forgotten ships nothing.
-export function assertChangesHeading(changelog, version) {
-  const lines = outsideFences(changelog.split("\n"));
-  const current = lines.find((line) => line.startsWith(`## ${version} `));
-  if (!current) throw new Error(`CHANGES.md has no "## ${version} - <title>" heading`);
-  // An entry is a heading whose first word carries a version, at any level or
-  // decoration: "# 1.2.3", "## v1.2.3", "## [1.2.3]". A heading without one is
-  // not read as an entry.
-  const leadsWithVersion = (line) => /(?:^|\D)\d+\.\d+\.\d/.test(line.match(/^#+\s*(\S*)/)?.[1] ?? "");
-  const newest = lines.find(leadsWithVersion);
-  if (newest !== current) throw new Error(`CHANGES.md's newest release heading is "${newest}", but VERSION is ${version}`);
-  const headings = lines.filter((line) => /^## \d+\.\d+\.\d+/.test(line));
-  const wellFormed = new RegExp(`^## ${VERSION_RE.source} - \\S`);
-  const malformed = headings.filter((line) => !wellFormed.test(line));
-  if (malformed.length) {
-    throw new Error(`CHANGES.md release headings read "## <version> - <title>":\n${malformed.join("\n")}`);
-  }
-  const versions = headings.map((line) => line.split(" ")[1]);
-  const repeated = headings.filter((_, i) => versions.indexOf(versions[i]) !== versions.lastIndexOf(versions[i]));
-  if (repeated.length) throw new Error(`CHANGES.md heads two entries with one version:\n${repeated.join("\n")}`);
 }
 
 // Validate the shared subset of the Agent Skills contract: every skill needs a
@@ -205,7 +165,7 @@ const TIERS = ["default", "strongest", "panel", "workhorse"];
 // Check models.json's shape, throwing with the offending tier, role, or entry
 // named. `skillExists(skill)` reports whether a role's skill directory carries
 // a SKILL.md. Every tier holds T3 entries in the sheet grammar of
-// setup-pstack's t3-sheet.mjs, and the panel spans two model families.
+// setup-jstack's t3-sheet.mjs, and the panel spans two model families.
 export function parseModels(raw, skillExists) {
   const fail = (message) => {
     throw new Error(`models.json: ${message}`);
@@ -399,17 +359,16 @@ export function validateHooks(hooksJson, { statOf, file = "hooks/hooks.json", ro
 // Codex trusts a plugin hook by a hash of its entry, and a Git marketplace
 // delivers a new entry at the next app-server start, so a changed hooks file
 // silently stops the hook in every home until the installer trusts it again.
-// Each hooks file is pinned with the release that last changed it, and that
-// release's CHANGES entry must tell users to rerun the installer. `shipped`
-// holds VERSION and the hooks files as origin/main has them, since main is
-// what the marketplaces deliver: a file that differs from main's changes in
-// this release, so its pin must name this release, and VERSION must be newer
-// than main's.
-export function frozenHookFaults({ pins, files, version, changelog, shipped }) {
+// Each hooks file is pinned with the release that last changed it; the GitHub
+// Release notes for that release must tell users to rerun the installer.
+// `shipped` holds VERSION and the hooks files as origin/main has them, since
+// main is what the marketplaces deliver: a file that differs from main's
+// changes in this release, so its pin must name this release, and VERSION
+// must be newer than main's.
+export function frozenHookFaults({ pins, files, version, shipped }) {
   const faults = Object.keys(files)
     .filter((path) => !Object.hasOwn(pins, path))
     .map((path) => `${path} has no pin in ${FROZEN_HOOKS}`);
-  const entry = changelog.split(/^## /m).find((section) => section.startsWith(`${version} `)) ?? "";
   for (const [path, pin] of Object.entries(pins)) {
     if (!Object.hasOwn(files, path)) {
       faults.push(`${FROZEN_HOOKS} pins ${path}, which no manifest names`);
@@ -421,14 +380,12 @@ export function frozenHookFaults({ pins, files, version, changelog, shipped }) {
       faults.push(
         `${path} changed, which stops its hook in every Codex home until the installer reruns. ` +
           `Pin "sha256": "${digest}" and "changedIn": "${version}" in ${FROZEN_HOOKS}, ` +
-          `and tell users to rerun the installer in CHANGES.md's ${version} entry.`,
+          `and tell users to rerun the installer in the GitHub Release notes for ${version}.`,
       );
     } else if (changed && Bun.semver.order(version, shipped.version) <= 0) {
       faults.push(`${path} differs from origin/main, which ships ${shipped.version}, so this change needs a VERSION newer than that, not ${version}`);
     } else if (changed && pin.changedIn !== version) {
       faults.push(`${path} differs from origin/main, so its pin's "changedIn" must be ${version}, not ${pin.changedIn}`);
-    } else if (pin.changedIn === version && !/rerun the installer/i.test(entry)) {
-      faults.push(`${path} changes in ${version}, but CHANGES.md's ${version} entry does not tell users to rerun the installer`);
     }
   }
   return faults;
@@ -458,7 +415,6 @@ export function plan(root, models) {
   const read = (rel) => readFileSync(join(root, rel), "utf8");
   const version = read("VERSION").trim();
   if (!VERSION_LINE.test(version)) throw new Error(`VERSION must be MAJOR.MINOR.PATCH[-PRERELEASE], got "${version}"`);
-  assertChangesHeading(read("CHANGES.md"), version);
   models ??= loadModels(root);
 
   // A stamp edits the text planned so far for its path, so producers on one
@@ -572,7 +528,6 @@ export function problems(root, models) {
       pins: JSON.parse(read(FROZEN_HOOKS)),
       files: Object.fromEntries(paths.map((path) => [path, read(path)])),
       version: read("VERSION").trim(),
-      changelog: read("CHANGES.md"),
       shipped: shippedOnMain(root, paths),
     });
     if (faults.length) throw new Error(faults.join("\n"));

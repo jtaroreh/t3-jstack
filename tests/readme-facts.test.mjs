@@ -10,9 +10,9 @@ import { agentSkills } from "../tools/generate.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const readme = readFileSync(join(repoRoot, "README.md"), "utf8");
-const skills = agentSkills(join(repoRoot, "plugins/pstack/skills"));
+const skills = agentSkills(join(repoRoot, "plugins/jstack/skills"));
 const principles = skills.filter(({ name }) => name.startsWith("principle-")).length;
-const agents = readdirSync(join(repoRoot, "plugins/pstack/agents")).filter((f) => f.endsWith(".md")).length;
+const agents = readdirSync(join(repoRoot, "plugins/jstack/agents")).filter((f) => f.endsWith(".md")).length;
 const pins = JSON.parse(readFileSync(join(repoRoot, "tools/upstream.json"), "utf8")).components;
 
 const numbersBefore = (phrase) => [...readme.matchAll(new RegExp(`(\\d+) (?:${phrase})`, "g"))].map((m) => Number(m[1]));

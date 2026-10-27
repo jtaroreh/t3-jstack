@@ -93,7 +93,7 @@ jobs:
           while IFS= read -r path; do port_only[$path]=1; done < <(
             awk '/^port-only: / { listed = 1; next } listed && /^  / { print $1; next } { listed = 0 }' "$RUNNER_TEMP"/sync-*.txt
           )
-          git diff --name-only "$BASE_SHA" HEAD -- plugins/pstack/skills |
+          git diff --name-only "$BASE_SHA" HEAD -- plugins/jstack/skills |
             while IFS= read -r path; do
               if [[ -v forks[$path] ]]; then
                 echo "::warning file=$path::Declared fork changed. Update its why in tools/forks.json if the edit changes what the fork does."
@@ -107,7 +107,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: plugins/pstack/skills/poteto-mode/scripts
+        working-directory: plugins/jstack/skills/poteto-mode/scripts
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -141,7 +141,7 @@ jobs:
         with:
           node-version: "20"
       - name: Test skill scripts
-        run: node --test plugins/pstack/skills/*/scripts/test/*.test.mjs
+        run: node --test plugins/jstack/skills/*/scripts/test/*.test.mjs
 
   shellcheck:
     name: Shell scripts
@@ -197,7 +197,7 @@ jobs:
       # --offline resolves relative file and fragment targets and skips every
       # remote URL, so a contributor's PR never fails on someone else's link
       # rot. tools/validate-skills.mjs already covers the skills tree; this
-      # reaches the README, CHANGES, and the other top-level docs.
+      # reaches the README and the other top-level docs.
       # Upstream's prompt templates write `(url)` as a placeholder link, which
       # validate-skills.mjs also skips, so a bare `url` file target is excluded.
       #

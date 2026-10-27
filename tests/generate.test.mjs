@@ -23,7 +23,6 @@ import { fileURLToPath } from "node:url";
 import { applyRegions, deriveT3, fenceUnder, section, tableRows, t3Regions } from "../tools/derive-t3.mjs";
 import {
   apply,
-  assertChangesHeading,
   changes,
   frozenHookFaults,
   loadModels,
@@ -76,7 +75,7 @@ describe("regions", () => {
   test("every skill a role names gets that role's tier default stamped in its Models section", () => {
     const marked = { ...models, tiers: { default: "x/marker-default", strongest: "x/marker-strongest", workhorse: "x/marker-workhorse", panel: ["a/claude-p", "b/gpt-p"] } };
     for (const skill of new Set(models.roles.map((r) => r.skill))) {
-      const file = `plugins/pstack/skills/${skill}/SKILL.md`;
+      const file = `plugins/jstack/skills/${skill}/SKILL.md`;
       const stamped = applyRegions(file, readFileSync(join(repoRoot, file), "utf8"), marked, { strict: true });
       for (const role of models.roles.filter((r) => r.skill === skill)) {
         const expected = { default: "`x/marker-default`", strongest: "`x/marker-strongest`", workhorse: "`x/marker-workhorse`", panel: "`a/claude-p`, `b/gpt-p`" }[role.tier];
@@ -86,7 +85,7 @@ describe("regions", () => {
   });
 
   test("applyRegions stamps in place and is idempotent", () => {
-    const file = "plugins/pstack/skills/how/SKILL.md";
+    const file = "plugins/jstack/skills/how/SKILL.md";
     const text = "# how\n\n## Models\n\nstale\n\n## After\nkeep\n";
     const once = applyRegions(file, text, models, { strict: true });
     expect(once).not.toContain("stale");
@@ -96,16 +95,16 @@ describe("regions", () => {
   });
 
   test("a strict stamp throws when an owned file lost its anchor, and a sync stamp leaves it alone", () => {
-    const text = "---\nname: setup-pstack\ndescription: d\n---\n\n### 5. Write the rule\n\n```\nold\n```\n";
-    expect(() => applyRegions("plugins/pstack/skills/setup-pstack/SKILL.md", text, models, { strict: true })).toThrow(
-      "plugins/pstack/skills/setup-pstack/SKILL.md: no anchor for the sheet block to stamp",
+    const text = "---\nname: setup-jstack\ndescription: d\n---\n\n### 5. Write the rule\n\n```\nold\n```\n";
+    expect(() => applyRegions("plugins/jstack/skills/setup-jstack/SKILL.md", text, models, { strict: true })).toThrow(
+      "plugins/jstack/skills/setup-jstack/SKILL.md: no anchor for the sheet block to stamp",
     );
-    expect(applyRegions("plugins/pstack/skills/setup-pstack/SKILL.md", text, models)).toBe(text);
+    expect(applyRegions("plugins/jstack/skills/setup-jstack/SKILL.md", text, models)).toBe(text);
   });
 
   test("interrogate's reviewer table gets one row per panel entry", () => {
     const text = "| Subagent | Default model |\n| --- | --- |\n| Reviewer A | `old` |\n";
-    const stamped = applyRegions("plugins/pstack/skills/interrogate/SKILL.md", text, models);
+    const stamped = applyRegions("plugins/jstack/skills/interrogate/SKILL.md", text, models);
     expect(stamped).toContain(
       "| Reviewer A | `claudeAgent/claude-opus-5-5 effort=xhigh` |\n| Reviewer B | `codex/gpt-6.1-sol reasoningEffort=xhigh` |\n| Reviewer C | `grok/grok-4.7 reasoningEffort=xhigh` |",
     );
@@ -113,8 +112,8 @@ describe("regions", () => {
 
   test("applyRegions leaves a file no region names untouched", () => {
     const text = "# other\n\n## Models\n\nprose\n";
-    expect(applyRegions("plugins/pstack/skills/other/SKILL.md", text, models)).toBe(text);
-    expect(t3Regions(models).some((r) => r.file === "plugins/pstack/skills/other/SKILL.md")).toBe(false);
+    expect(applyRegions("plugins/jstack/skills/other/SKILL.md", text, models)).toBe(text);
+    expect(t3Regions(models).some((r) => r.file === "plugins/jstack/skills/other/SKILL.md")).toBe(false);
   });
 });
 
@@ -129,85 +128,6 @@ describe("stampVersion", () => {
   test("refuses a manifest with zero or two version fields", () => {
     expect(() => stampVersion('{"name":"x"}', "1.0.0", "m.json")).toThrow('m.json: expected exactly 1 "version" field, found 0');
     expect(() => stampVersion('{"version":"1","dep":{"version":"2"}}', "1.0.0", "m.json")).toThrow("found 2");
-  });
-});
-
-describe("assertChangesHeading", () => {
-  test("requires the current version's heading and one shape for every release heading", () => {
-    expect(() => assertChangesHeading("## 0.9.1 - title\n## 0.9.0 - older\n", "0.9.1")).not.toThrow();
-    expect(() => assertChangesHeading("## 0.9.10 - title\n", "0.9.1")).toThrow('no "## 0.9.1 - <title>" heading');
-    expect(() => assertChangesHeading("## 0.9.1 - title\n## 0.9.0 — em dash\n## 0.8.9\n", "0.9.1")).toThrow(
-      'read "## <version> - <title>":\n## 0.9.0 — em dash\n## 0.8.9',
-    );
-  });
-
-  test("a heading newer than VERSION fails naming both, so an entry without a bump cannot ship", () => {
-    expect(() => assertChangesHeading("# Changes\n\n## 0.9.71 - newer\n\n## 0.9.70 - current\n", "0.9.70")).toThrow(
-      'CHANGES.md\'s newest release heading is "## 0.9.71 - newer", but VERSION is 0.9.70',
-    );
-  });
-
-  test("a newer version that only extends VERSION fails like any other", () => {
-    expect(() => assertChangesHeading("# Changes\n\n## 0.9.70 - newer\n\n## 0.9.7 - current\n", "0.9.7")).toThrow(
-      'CHANGES.md\'s newest release heading is "## 0.9.70 - newer", but VERSION is 0.9.7',
-    );
-  });
-
-  test.each(["## v0.9.71 - newer", "## [0.9.71] - newer", "##  0.9.71 - newer", "##0.9.71 - newer", "### 0.9.71 - newer", "# 0.9.71 - newer"])(
-    "an entry headed %s above the VERSION heading fails, whatever its level, spacing, or decoration",
-    (heading) => {
-      expect(() => assertChangesHeading(`# Changes\n\n${heading}\n\n## 0.9.70 - current\n`, "0.9.70")).toThrow(
-        `CHANGES.md's newest release heading is "${heading}", but VERSION is 0.9.70`,
-      );
-    },
-  );
-
-  test.each(["## About this file", "## Unreleased", "## Format since 0.9.13", "## 2.0 plans"])(
-    "a heading that does not lead with a three-part version is no entry and may sit above the newest: %s",
-    (heading) => {
-      expect(() => assertChangesHeading(`# Changes\n\n${heading}\n\n## 0.9.71 - new\n\n## 0.9.70 - old\n`, "0.9.71")).not.toThrow();
-    },
-  );
-
-  test("a version that heads two entries fails naming both, so new work under the old number cannot ship", () => {
-    expect(() => assertChangesHeading("# Changes\n\n## 0.9.70 - newer work\n\n## 0.9.70 - current\n", "0.9.70")).toThrow(
-      "CHANGES.md heads two entries with one version:\n## 0.9.70 - newer work\n## 0.9.70 - current",
-    );
-  });
-
-  test("a heading that is not a release may sit below the newest entry", () => {
-    expect(() => assertChangesHeading("## 0.9.1 - title\n\n## Upstream review\n\n## 0.9.0 - older\n", "0.9.1")).not.toThrow();
-  });
-
-  test.each([
-    ["an older heading quoted in the newest entry", "## 0.9.71 - new\n\n```\n## 0.9.70 - old\n```\n\n## 0.9.70 - old\n"],
-    ["a sample heading above the first entry", "```md\n## 1.2.3 - title\n```\n\n## 0.9.71 - new\n\n## 0.9.70 - old\n"],
-    ["a tilde fence", "## 0.9.71 - new\n\n~~~\n## 0.9.70 - old\n~~~\n\n## 0.9.70 - old\n"],
-    ["an indented fence", "## 0.9.71 - new\n\n ```\n## 0.9.70 - old\n ```\n\n## 0.9.70 - old\n"],
-    ["a longer fence holding a shorter one", "## 0.9.71 - new\n\n````\n```\n## 0.9.70 - old\n```\n````\n\n## 0.9.70 - old\n"],
-    ["a tilde line inside a backtick fence", "## 0.9.71 - new\n\n```\n~~~\n## 0.9.70 - old\n~~~\n```\n\n## 0.9.70 - old\n"],
-    ["a longer run closing a shorter fence", "```\n## 1.2.3 - sample\n````\n\n## 0.9.71 - new\n\n## 0.9.70 - old\n"],
-    ["a marker with an info string inside a fence", "```\n```md\n## 1.2.3 - sample\n```\n\n## 0.9.71 - new\n\n## 0.9.70 - old\n"],
-  ])("a heading inside a code fence heads no entry: %s", (_, body) => {
-    expect(() => assertChangesHeading(`# Changes\n\n${body}`, "0.9.71")).not.toThrow();
-  });
-
-  test.each([
-    ["in the middle of a line", "Quote a heading in a ``` fence."],
-    ["indented four spaces, which is a code block", "    ```"],
-  ])("three backticks %s open no fence", (_, line) => {
-    expect(() => assertChangesHeading(`# Changes\n\n${line}\n\n## 0.9.71 - new\n\n## 0.9.70 - old\n`, "0.9.71")).not.toThrow();
-  });
-
-  test("a VERSION heading that sits only inside a code fence is no heading", () => {
-    expect(() => assertChangesHeading("# Changes\n\n```\n## 0.9.71 - new\n```\n\n## 0.9.70 - old\n", "0.9.71")).toThrow(
-      'no "## 0.9.71 - <title>" heading',
-    );
-  });
-
-  test("a pre-release version heads its own entry", () => {
-    expect(() => assertChangesHeading("## 2.0.0-rc.1 - base switch\n\n## 1.0.14 - older\n", "2.0.0-rc.1")).not.toThrow();
-    expect(() => assertChangesHeading("## 2.0.0-rc.1 base switch\n\n## 1.0.14 - older\n", "2.0.0-rc.1")).toThrow('read "## <version> - <title>"');
   });
 });
 
@@ -236,63 +156,64 @@ describe("deriveT3", () => {
 
   test("drops disable-model-invocation on poteto-mode only, so the session-start hook can invoke it", () => {
     const flag = "disable-model-invocation: true\n";
-    expect(deriveT3("plugins/pstack/skills/poteto-mode/SKILL.md", front(flag, "Poteto Mode"), models)).toStartWith(front("", "poteto-mode"));
-    expect(deriveT3("plugins/pstack/skills/tdd/SKILL.md", front(flag, "tdd"), models)).toBe(front(flag, "tdd"));
-    expect(deriveT3("plugins/pstack/skills/principle-x/SKILL.md", front(flag, "principle-x"), models)).toBe(front(flag, "principle-x"));
+    expect(deriveT3("plugins/jstack/skills/poteto-mode/SKILL.md", front(flag, "Poteto Mode"), models)).toStartWith(front("", "poteto-mode"));
+    expect(deriveT3("plugins/jstack/skills/tdd/SKILL.md", front(flag, "tdd"), models)).toBe(front(flag, "tdd"));
+    expect(deriveT3("plugins/jstack/skills/principle-x/SKILL.md", front(flag, "principle-x"), models)).toBe(front(flag, "principle-x"));
   });
 
   test("names a skill after its directory and an agent after its file, and drops Cursor-only keys", () => {
     const cursorKeys = "mode: true\nicon: crown\ncolor: yellow\nreminder: >-\n  New task?\n  Apply it.\n";
-    expect(deriveT3("plugins/pstack/skills/x/SKILL.md", front(cursorKeys, "X Mode"), models)).toBe(front(""));
-    expect(deriveT3("plugins/pstack/agents/comment-sicko.md", front("is_background: true\n", "Comment Sicko"), models)).toBe(
+    expect(deriveT3("plugins/jstack/skills/x/SKILL.md", front(cursorKeys, "X Mode"), models)).toBe(front(""));
+    expect(deriveT3("plugins/jstack/agents/comment-sicko.md", front("is_background: true\n", "Comment Sicko"), models)).toBe(
       front("", "comment-sicko"),
     );
   });
 
   test("leaves a reference file's frontmatter alone", () => {
     const text = front("mode: true\n", "Some Reference");
-    expect(deriveT3("plugins/pstack/skills/x/references/y.md", text, models)).toBe(text);
+    expect(deriveT3("plugins/jstack/skills/x/references/y.md", text, models)).toBe(text);
   });
 
   test.each(["|-", ">-"])("drops every paragraph of a %s reminder without changing adjacent fields", (style) => {
     const text = front(`reminder: ${style}\n  First paragraph.\n\n  Second paragraph.\n  \n  Last paragraph.\nallowed-tools:\n  - Read\n`);
-    const out = deriveT3("plugins/pstack/skills/x/SKILL.md", text, models);
+    const out = deriveT3("plugins/jstack/skills/x/SKILL.md", text, models);
     expect(parseFrontmatter(out)).toEqual({
       data: { name: "x", description: "d", "allowed-tools": ["Read"] },
       body: parseFrontmatter(text).body,
     });
-    expect(deriveT3("plugins/pstack/skills/x/SKILL.md", out, models)).toBe(out);
+    expect(deriveT3("plugins/jstack/skills/x/SKILL.md", out, models)).toBe(out);
   });
 
   test("leaves a flag line in the body alone", () => {
     const text = front("", "poteto-mode") + "disable-model-invocation: true\n";
-    expect(deriveT3("plugins/pstack/skills/poteto-mode/SKILL.md", text, models)).toStartWith(text);
+    expect(deriveT3("plugins/jstack/skills/poteto-mode/SKILL.md", text, models)).toStartWith(text);
   });
 
   test("appends and stamps a Models section when upstream has none, naming the sheet and the entry grammar", () => {
-    const out = deriveT3("plugins/pstack/skills/how/SKILL.md", front(""), models);
-    expect(out).toContain("body\n\n## Models\n\nRole defaults on T3, stamped from `plugins/pstack/models.json`.");
-    expect(out).toContain("`t3-pstack-models.md`");
+    const out = deriveT3("plugins/jstack/skills/how/SKILL.md", front(""), models);
+    expect(out).toContain("body\n\n## Models\n\nRole defaults on T3, stamped from `plugins/jstack/models.json`.");
+    expect(out).toContain("`t3-jstack-models.md`");
+    expect(out).toContain("`t3-pstack`");
     expect(out).toContain("It splits at its first `/`");
     expect(out.endsWith("- how explainer: `claudeAgent/claude-opus-5-5 effort=xhigh`\n")).toBe(true);
-    expect(deriveT3("plugins/pstack/skills/how/SKILL.md", out, models)).toBe(out);
+    expect(deriveT3("plugins/jstack/skills/how/SKILL.md", out, models)).toBe(out);
   });
 
   test("names the alias a released sheet may still use", () => {
-    const out = deriveT3("plugins/pstack/skills/poteto-mode/SKILL.md", front("", "poteto-mode"), models);
+    const out = deriveT3("plugins/jstack/skills/poteto-mode/SKILL.md", front("", "poteto-mode"), models);
     expect(out).toContain("- hardest tasks: `claudeAgent/claude-fable-5-1 effort=xhigh` (a `strongest judgment` line counts as this role)");
   });
 
   test("a file no region names passes through", () => {
     const text = "# plain\n\nreference text\n";
-    expect(deriveT3("plugins/pstack/skills/how/references/x.md", text, models)).toBe(text);
+    expect(deriveT3("plugins/jstack/skills/how/references/x.md", text, models)).toBe(text);
   });
 });
 
 describe("plugin agents", () => {
   test("plugin.json lists every agent the plugin ships", () => {
-    const listed = JSON.parse(readFileSync(join(repoRoot, "plugins/pstack/.claude-plugin/plugin.json"), "utf8")).agents;
-    const shipped = readdirSync(join(repoRoot, "plugins/pstack/agents")).map((f) => `./agents/${f}`).sort();
+    const listed = JSON.parse(readFileSync(join(repoRoot, "plugins/jstack/.claude-plugin/plugin.json"), "utf8")).agents;
+    const shipped = readdirSync(join(repoRoot, "plugins/jstack/agents")).map((f) => `./agents/${f}`).sort();
     expect(listed).toEqual(shipped);
     expect(listed).toContain("./agents/poteto-agent.md");
   });
@@ -335,8 +256,8 @@ describe("plan, changes, apply", () => {
   };
   const snapshot = (dir) => Object.fromEntries(walk(dir).map((path) => [path, readFileSync(path, "utf8")]));
   const quiet = { log: () => {} };
-  const STUB = "plugins/pstack/skills/poteto-mode/references/licenses/LICENSE";
-  const STRAY = "plugins/pstack/skills/poteto-mode/references/licenses/stray.md";
+  const STUB = "plugins/jstack/skills/poteto-mode/references/licenses/LICENSE";
+  const STRAY = "plugins/jstack/skills/poteto-mode/references/licenses/stray.md";
   const generate = (root, ...args) => spawnSync(process.execPath, [join(root, "tools/generate.mjs"), ...args], { encoding: "utf8" });
   const append = (root, rel, text) => writeFileSync(join(root, rel), readFileSync(join(root, rel), "utf8") + text);
 
@@ -372,8 +293,8 @@ describe("plan, changes, apply", () => {
 
   test("a hand edit to a stamped Models line or to the sheet block is restored", () => {
     const root = repoCopy();
-    const how = "plugins/pstack/skills/how/SKILL.md";
-    const setup = "plugins/pstack/skills/setup-pstack/SKILL.md";
+    const how = "plugins/jstack/skills/how/SKILL.md";
+    const setup = "plugins/jstack/skills/setup-jstack/SKILL.md";
     const text = (rel) => readFileSync(join(root, rel), "utf8");
     writeFileSync(join(root, how), text(how).replace(/^- how explorer: .*$/m, "- how explorer: stale"));
     writeFileSync(join(root, setup), text(setup).replace(/^bug-fix: .*$/m, "bug-fix: stale"));
@@ -480,26 +401,23 @@ describe("plan, changes, apply", () => {
   test("a pre-release VERSION stamps every manifest", () => {
     const root = repoCopy();
     writeFileSync(join(root, "VERSION"), "9.0.0-rc.2\n");
-    append(root, "CHANGES.md", "");
-    const changelog = readFileSync(join(root, "CHANGES.md"), "utf8");
-    writeFileSync(join(root, "CHANGES.md"), changelog.replace(/^## \S+ - /m, "## 9.0.0-rc.2 - next\n\n$&"));
     const { files } = plan(root);
-    for (const manifest of [".claude-plugin/marketplace.json", "plugins/pstack/.claude-plugin/plugin.json", "plugins/pstack/.codex-plugin/plugin.json", "package.json"]) {
+    for (const manifest of [".claude-plugin/marketplace.json", "plugins/jstack/.claude-plugin/plugin.json", "plugins/jstack/.codex-plugin/plugin.json", "package.json"]) {
       expect(files[manifest]).toContain('"version": "9.0.0-rc.2"');
     }
   });
 
   test("problems reports every broken contract, and --check prints each and exits 1", () => {
     const root = repoCopy();
-    append(root, "plugins/pstack/skills/deslop/SKILL.md", "\n[gone](missing.md)\n");
-    const poteto = "plugins/pstack/skills/poteto-mode/SKILL.md";
+    append(root, "plugins/jstack/skills/deslop/SKILL.md", "\n[gone](missing.md)\n");
+    const poteto = "plugins/jstack/skills/poteto-mode/SKILL.md";
     writeFileSync(join(root, poteto), readFileSync(join(root, poteto), "utf8").replace("---\n\n", "disable-model-invocation: true\n---\n\n"));
-    writeFileSync(join(root, "plugins/pstack/plugin.json"), "{}\n");
+    writeFileSync(join(root, "plugins/jstack/plugin.json"), "{}\n");
     const failures = problems(root);
     expect(failures).toEqual([
       expect.stringContaining("poteto-mode/SKILL.md: disable-model-invocation: true stops the session-start hook"),
       "invalid local markdown links:\ndeslop/SKILL.md -> missing.md (missing)",
-      expect.stringContaining("plugins/pstack/plugin.json exists; Codex would truncate"),
+      expect.stringContaining("plugins/jstack/plugin.json exists; Codex would truncate"),
     ]);
     const check = generate(root, "--check");
     expect(check.status).toBe(1);
@@ -508,7 +426,7 @@ describe("plan, changes, apply", () => {
 
   test("problems reports an agent whose frontmatter strict YAML cannot read", () => {
     const root = repoCopy();
-    const agent = "plugins/pstack/agents/comment-sicko.md";
+    const agent = "plugins/jstack/agents/comment-sicko.md";
     writeFileSync(
       join(root, agent),
       readFileSync(join(root, agent), "utf8").replace(/^description: .*$/m, "description: `backticked` first"),
@@ -520,7 +438,7 @@ describe("plan, changes, apply", () => {
 
   test("problems reports an agent whose frontmatter name is not its file name", () => {
     const root = repoCopy();
-    const agent = "plugins/pstack/agents/comment-sicko.md";
+    const agent = "plugins/jstack/agents/comment-sicko.md";
     writeFileSync(join(root, agent), readFileSync(join(root, agent), "utf8").replace(/^name: .*$/m, "name: sicko"));
     expect(problems(root)).toEqual([
       expect.stringContaining('./agents/comment-sicko.md: frontmatter name "sicko" != file name "comment-sicko"'),
@@ -529,8 +447,8 @@ describe("plan, changes, apply", () => {
 
   test("problems reports a malformed Codex manifest as one failure and still runs the other checks", () => {
     const root = repoCopy();
-    const manifest = "plugins/pstack/.codex-plugin/plugin.json";
-    append(root, "plugins/pstack/skills/deslop/SKILL.md", "\n[gone](missing.md)\n");
+    const manifest = "plugins/jstack/.codex-plugin/plugin.json";
+    append(root, "plugins/jstack/skills/deslop/SKILL.md", "\n[gone](missing.md)\n");
     writeFileSync(join(root, manifest), readFileSync(join(root, manifest), "utf8") + "}\n");
     expect(problems(root)).toEqual([
       "invalid local markdown links:\ndeslop/SKILL.md -> missing.md (missing)",
@@ -540,7 +458,7 @@ describe("plan, changes, apply", () => {
 
   test("problems checks the Codex marketplace and the hooks file the Codex manifest names", () => {
     const root = repoCopy();
-    const hooks = "plugins/pstack/hooks/codex-hooks.json";
+    const hooks = "plugins/jstack/hooks/codex-hooks.json";
     writeFileSync(join(root, hooks), readFileSync(join(root, hooks), "utf8").replace("hooks/session-start.ps1", "hooks/gone.ps1"));
     expect(problems(root)).toEqual([
       expect.stringContaining("hooks/gone.ps1 does not exist"),
@@ -553,21 +471,21 @@ describe("plan, changes, apply", () => {
 
   test("problems reports a hook path that resolves outside the plugin, through .. or through a symlink", () => {
     const root = repoCopy();
-    const hooks = "plugins/pstack/hooks/hooks.json";
+    const hooks = "plugins/jstack/hooks/hooks.json";
     const text = readFileSync(join(root, hooks), "utf8");
     const changed = expect.stringContaining(`${hooks} changed, which stops its hook`);
     writeFileSync(join(root, hooks), text.replace("hooks/session-start.sh", "../../tools/generate.mjs"));
     expect(problems(root)).toEqual([expect.stringContaining("../../tools/generate.mjs does not exist in the plugin"), changed]);
     const outside = join(scratch("pstack-outside-"), "start.sh");
     writeFileSync(outside, "#!/bin/sh\n", { mode: 0o755 });
-    symlinkSync(outside, join(root, "plugins/pstack/hooks/linked.sh"));
+    symlinkSync(outside, join(root, "plugins/jstack/hooks/linked.sh"));
     writeFileSync(join(root, hooks), text.replace("hooks/session-start.sh", "hooks/linked.sh"));
     expect(problems(root)).toEqual([expect.stringContaining("hooks/linked.sh does not exist in the plugin"), changed]);
   });
 
   test("problems compares the hooks files with origin/main, so a repinned change cannot keep its old changedIn", () => {
     const root = repoCopy();
-    const hooks = "plugins/pstack/hooks/codex-hooks.json";
+    const hooks = "plugins/jstack/hooks/codex-hooks.json";
     const text = readFileSync(join(root, hooks), "utf8").replace("startup|resume|clear|compact", "startup|resume|compact");
     writeFileSync(join(root, hooks), text);
     const pins = JSON.parse(readFileSync(join(root, "tools/frozen-hooks.json"), "utf8"));
@@ -583,9 +501,10 @@ describe("plan, changes, apply", () => {
 
   test("problems fetches origin/main and compares with it, not with the merge-base, so a release main already shipped cannot be reused", () => {
     const root = repoCopy();
-    const hooks = "plugins/pstack/hooks/codex-hooks.json";
+    const hooks = "plugins/jstack/hooks/codex-hooks.json";
     const original = readFileSync(join(root, hooks), "utf8");
-    // A release with `matcher` for the hooks file: VERSION, the hooks file, its pin, and a CHANGES entry.
+    // A release with `matcher` for the hooks file: VERSION, the hooks file, and its pin.
+    // The rerun-the-installer note lives in the GitHub Release notes, which the generator no longer reads.
     const release = (version, matcher) => {
       const text = original.replace("startup|resume|clear|compact", matcher);
       writeFileSync(join(root, hooks), text);
@@ -593,7 +512,6 @@ describe("plan, changes, apply", () => {
       pins[hooks] = { sha256: hookDigest(text), changedIn: version };
       writeFileSync(join(root, "tools/frozen-hooks.json"), JSON.stringify(pins, null, 2) + "\n");
       writeFileSync(join(root, "VERSION"), `${version}\n`);
-      writeFileSync(join(root, "CHANGES.md"), `# CHANGES\n\n## ${version} - Next\n\nRerun the installer.\n\n` + readFileSync(join(root, "CHANGES.md"), "utf8").replace(/^# CHANGES\n\n/, ""));
     };
     writeFileSync(join(root, "VERSION"), "9.0.0-rc.2\n");
     git(root, "commit", "-qam", "9.0.0-rc.2");
@@ -622,35 +540,33 @@ describe("plan, changes, apply", () => {
   });
 
   test("problems reports a root with no plugin directory, down to the last check, and does not throw", () => {
-    expect(problems(scratch("pstack-empty-"))).toContainEqual(expect.stringContaining("plugins/pstack/hooks/hooks.json"));
+    expect(problems(scratch("pstack-empty-"))).toContainEqual(expect.stringContaining("plugins/jstack/hooks/hooks.json"));
   });
 });
 
 describe("frozen hook entries", () => {
-  const path = "plugins/pstack/hooks/codex-hooks.json";
+  const path = "plugins/jstack/hooks/codex-hooks.json";
   const hooks = '{"hooks":{"SessionStart":[{"matcher":"startup","hooks":[{"type":"command","command":"x"}]}]}}';
   const changed = hooks.replace("startup", "startup|resume");
-  const changelog = (body) => `# CHANGES\n\n## 2.1.0 - Next\n\n${body}\n\n## 2.0.0 - Before\n\nRerun the installer.\n`;
   const main = { version: "2.0.0", files: { [path]: hooks } };
-  const faults = ({ pins, file = changed, version = "2.1.0", body = "Rerun the installer.", shipped = main }) =>
-    frozenHookFaults({ pins, files: { [path]: file }, version, changelog: changelog(body), shipped });
+  const faults = ({ pins, file = changed, version = "2.1.0", shipped = main }) =>
+    frozenHookFaults({ pins, files: { [path]: file }, version, shipped });
 
   test("pass while each hooks file matches its pin and main, whatever its formatting", () => {
     const pins = { [path]: { sha256: hookDigest(hooks), changedIn: "2.0.0" } };
-    expect(faults({ pins, file: JSON.stringify(JSON.parse(hooks), null, 2), body: "Nothing." })).toEqual([]);
+    expect(faults({ pins, file: JSON.stringify(JSON.parse(hooks), null, 2) })).toEqual([]);
   });
 
   test("fail on a change until it is pinned to the release that announces it", () => {
     const pins = { [path]: { sha256: hookDigest(hooks), changedIn: "2.0.0" } };
-    expect(faults({ pins, body: "Nothing." })).toEqual([
+    expect(faults({ pins })).toEqual([
       `${path} changed, which stops its hook in every Codex home until the installer reruns. ` +
         `Pin "sha256": "${hookDigest(changed)}" and "changedIn": "2.1.0" in tools/frozen-hooks.json, ` +
-        "and tell users to rerun the installer in CHANGES.md's 2.1.0 entry.",
+        "and tell users to rerun the installer in the GitHub Release notes for 2.1.0.",
     ]);
+    // A repinned change passes: the installer note lives in the GitHub
+    // Release notes, which the generator no longer reads.
     const repinned = { [path]: { sha256: hookDigest(changed), changedIn: "2.1.0" } };
-    expect(faults({ pins: repinned, body: "Nothing." })).toEqual([
-      `${path} changes in 2.1.0, but CHANGES.md's 2.1.0 entry does not tell users to rerun the installer`,
-    ]);
     expect(faults({ pins: repinned })).toEqual([]);
   });
 
@@ -668,7 +584,7 @@ describe("frozen hook entries", () => {
   });
 
   test("fail on a hooks file with no pin and a pin with no file", () => {
-    expect(frozenHookFaults({ pins: { "a.json": { sha256: "x" } }, files: { [path]: hooks }, version: "2.1.0", changelog: "", shipped: main })).toEqual([
+    expect(frozenHookFaults({ pins: { "a.json": { sha256: "x" } }, files: { [path]: hooks }, version: "2.1.0", shipped: main })).toEqual([
       `${path} has no pin in tools/frozen-hooks.json`,
       "tools/frozen-hooks.json pins a.json, which no manifest names",
     ]);

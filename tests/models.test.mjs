@@ -1,5 +1,5 @@
 // models.json is the T3 model policy every stamped Models section,
-// interrogate's reviewer table, and setup-pstack's sheet block derive from.
+// interrogate's reviewer table, and setup-jstack's sheet block derive from.
 // parseModels checks its shape when the generator loads it, and a role label
 // is the runtime join key between the sheet the user writes and the prose that
 // tells the agent which role to look up.
@@ -13,13 +13,13 @@ import { loadModels, parseModels } from "../tools/generate.mjs";
 import { markdownFiles } from "../tools/validate-skills.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
-const skillsDir = join(repoRoot, "plugins/pstack/skills");
-const raw = JSON.parse(readFileSync(join(repoRoot, "plugins/pstack/models.json"), "utf8"));
+const skillsDir = join(repoRoot, "plugins/jstack/skills");
+const raw = JSON.parse(readFileSync(join(repoRoot, "plugins/jstack/models.json"), "utf8"));
 const models = loadModels();
 
 describe("committed models.json", () => {
   test("the file stays one row per role so a role change is a one-line diff", () => {
-    const text = readFileSync(join(repoRoot, "plugins/pstack/models.json"), "utf8");
+    const text = readFileSync(join(repoRoot, "plugins/jstack/models.json"), "utf8");
     expect(text.match(/^\s*\{ "role"/gm)).toHaveLength(raw.roles.length);
   });
 

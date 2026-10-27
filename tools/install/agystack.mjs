@@ -153,7 +153,7 @@ export function listSourceSkills(sourceRoot) {
 // destination here. `packageRoot` is the installed t3-pstack package: it
 // always supplies the adapter skill, and it supplies the cloud bridge scripts
 // (cloud-run.mjs and its sibling modules under
-// `plugins/pstack/skills/t3-agystack/scripts/`) when the cloud unit is installed.
+// `plugins/jstack/skills/t3-agystack/scripts/`) when the cloud unit is installed.
 export function buildProjection({ sourceRoot, destSkillsDir, packageRoot }) {
   if (!sourceRoot) throw new Error("a --agystack-source (resolved agystack plugin directory) is required");
   if (!destSkillsDir) throw new Error("a destination skills directory is required");
@@ -164,7 +164,7 @@ export function buildProjection({ sourceRoot, destSkillsDir, packageRoot }) {
   if (!existsSync(sourceRoot)) throw new Error(`agystack source ${sourceRoot}: does not exist`);
 
   const sourceSkills = listSourceSkills(sourceRoot);
-  const adapterSKILLPath = join(packageRoot, "plugins/pstack/skills", ADAPTER_SKILL_NAME, "SKILL.md");
+  const adapterSKILLPath = join(packageRoot, "plugins/jstack/skills", ADAPTER_SKILL_NAME, "SKILL.md");
   if (!existsSync(adapterSKILLPath)) {
     throw new Error(`the installed package does not ship the adapter skill (expected ${relative(packageRoot, adapterSKILLPath)}); projection impossible`);
   }
@@ -172,7 +172,7 @@ export function buildProjection({ sourceRoot, destSkillsDir, packageRoot }) {
   const adapterBytes = readFileSync(adapterSKILLPath);
   entries.push({ kind: "adapter-skill", path: `${ADAPTER_SKILL_NAME}/SKILL.md`, bytes: adapterBytes, hash: sha256Hex(adapterBytes), anchor: shortHash(adapterBytes) });
 
-  const packageSkills = join(packageRoot, "plugins/pstack/skills");
+  const packageSkills = join(packageRoot, "plugins/jstack/skills");
   const resources = ["scripts", "references"].flatMap(name => {
     const directory = join(packageSkills, ADAPTER_SKILL_NAME, name);
     return existsSync(directory) ? listResourceFiles(directory) : [];
@@ -479,7 +479,7 @@ export function doctor({ sourceRoot, destSkillsDir, packageRoot }) {
     else if (st.isSymbolicLink()) report.drift.push(path);
     else if (sha256Hex(readFileSync(at)) !== mine.hash) report.drift.push(path);
   }
-  const bundledScripts = join(packageRoot ?? "", "plugins/pstack/skills", ADAPTER_SKILL_NAME, "scripts");
+  const bundledScripts = join(packageRoot ?? "", "plugins/jstack/skills", ADAPTER_SKILL_NAME, "scripts");
   const projectedScripts = join(destSkillsDir, ADAPTER_SCRIPTS_DIR);
   report.adapterResource = {
     bundled: existsSync(join(bundledScripts, "cloud-run.mjs")),
