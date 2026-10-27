@@ -197,7 +197,7 @@ jobs:
       # --offline resolves relative file and fragment targets and skips every
       # remote URL, so a contributor's PR never fails on someone else's link
       # rot. tools/validate-skills.mjs already covers the skills tree; this
-      # reaches the README, CHANGES, CONTRIBUTING and the other top-level docs.
+      # reaches the README, CHANGES, and the other top-level docs.
       # Upstream's prompt templates write `(url)` as a placeholder link, which
       # validate-skills.mjs also skips, so a bare `url` file target is excluded.
       #

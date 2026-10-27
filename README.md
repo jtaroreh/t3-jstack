@@ -44,7 +44,7 @@ For Antigravity, use the [agystack integration](docs/antigravity.md). It keeps a
 
 ## Staying current
 
-This repository syncs from Lauren's tree directly, synced against upstream `e73df47`. `tools/upstream.json` pins each component, `tools/substitutions.json` holds the rewrite rules and a denylist of Cursor terms, and `tools/forks.json` declares every file the port keeps in its own form and why. `bun tools/sync.mjs <component> <sha>` derives each upstream file through the rules, merges it three ways with the port's copy, and fails on an undeclared fork, a denylist hit, or a rule that no longer matches upstream. [CONTRIBUTING.md](CONTRIBUTING.md#the-sync-boundary) has the details.
+This repository syncs from Lauren's tree directly, synced against upstream `e73df47`. `tools/upstream.json` pins each component, `tools/substitutions.json` holds the rewrite rules and a denylist of Cursor terms, and `tools/forks.json` declares every file the port keeps in its own form and why. `bun tools/sync.mjs <component> <sha>` derives each upstream file through the rules, merges it three ways with the port's copy, and fails on an undeclared fork, a denylist hit, or a rule that no longer matches upstream. `tools/sync.mjs` defines and enforces the sync boundary.
 
 ## Data handling
 
@@ -52,7 +52,7 @@ t3-pstack has no server or telemetry. Anything its skills ask your agent to read
 
 ## Contributing
 
-Bug reports, documentation fixes, and T3 improvements are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the checks and where your change belongs. Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+Bug reports, documentation fixes, and T3 improvements are welcome. Run `bun tools/generate.mjs --check` before opening a pull request. Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
 ## License
 
