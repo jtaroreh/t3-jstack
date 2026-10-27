@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
 import { spawn, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -59,7 +59,7 @@ function fixture(initial = {}) {
     release(name) { writeFileSync(join(root, `${name}.release`), ""); },
     dispose() {
       for (const child of children) if (child.exitCode === null) child.kill("SIGKILL");
-      for (const name of ["launching", "attached", "harvesting"]) {
+      for (const name of ["launching", "attached", "harvesting", "mailbox"]) {
         try { process.kill(Number(readFileSync(join(root, name), "utf8")), "SIGKILL"); } catch { /* Already exited. */ }
       }
       rmSync(root, { recursive: true, force: true });
@@ -550,4 +550,127 @@ test("state permissions fail closed and never invoke the engine", () => {
   mkdirSync(stateDir, { recursive: true, mode: 0o755 }); chmodSync(stateDir, 0o755);
   error(f.run(), "STATE_PERMISSIONS");
   expect(f.events()).toHaveLength(0);
+});
+
+
+test("worker messages use run-owned context and deduplicate a delivery request", () => {
+  const f=fixture();const run=ok(f.run());
+  const args=["steer",run.id,"--task","0","--instruction","Limit edits to the parser","--request-id","message-one"];
+  expect(ok(f.run(args))).toEqual([{taskIndex:0,seq:1,status:"submitted"}]);
+  expect(ok(f.run(args))).toEqual([{taskIndex:0,seq:1,status:"submitted"}]);
+  expect(f.events().filter(e=>e.kind==="mailbox")).toHaveLength(1);
+  error(f.run([...args.slice(0,5),"different",...args.slice(6)]),"REQUEST_COLLISION");
+  error(f.run(["steer",run.id,"--task","2","--instruction","x","--request-id","two"]),"INVALID_ARGUMENT");
+  expect(ok(f.run(["questions",run.id]))).toEqual({questions:[{taskIndex:0,seq:1,question:"Which test should run?"}],nextCursor:null});
+  expect(ok(f.run(["reply",run.id,"--task","0","--seq","1","--text","Run parser tests","--request-id","answer-one"]))[0].status).toBe("submitted");
+  expect(JSON.stringify(f.record())).not.toContain("Limit edits");
+});
+test("failed mailbox access is not an empty listing or permission to resend", () => {
+  const f=fixture({mailboxFailure:true});const run=ok(f.run());
+  error(f.run(["questions",run.id]),"MAILBOX_FAILED");
+  const args=["steer",run.id,"--task","all","--instruction","Stop after this check","--request-id","uncertain"];
+  error(f.run(args),"MAILBOX_FAILED"); f.set({mailboxFailure:false});
+  error(f.run(args),"MESSAGE_UNCERTAIN");
+  f.set({mailboxInvalid:true}); error(f.run(["questions",run.id]),"MAILBOX_INVALID");
+});
+test("cancellation remains available while a mailbox operation waits", async () => {
+  const f=fixture({holdMailbox:true});const run=ok(f.run());
+  const p=f.start(["steer",run.id,"--task","0","--instruction","Inspect tests","--request-id","slow"]);
+  await until(()=>existsSync(join(f.root,"mailbox")));
+  expect(ok(f.run(["cancel",run.id])).state).toBe("cancelling");
+  f.release("mailbox"); expect(await p.done).toBe(0);
+  expect(f.record().state).toBe("cancelling");
+});
+
+test("progress survives observer restart and retains only bounded safe counters", async () => {
+  const f = fixture({ progressNoise: true });
+  const record = ok(f.run());
+  const child = f.start(["attach", record.id]);
+  await until(() => existsSync(join(f.root, "attached")));
+  await until(() => { const result = f.run(["progress", record.id]); return result.status === 0 && result.data?.at(-1)?.succeeded === 1; });
+  const events = ok(f.run(["progress", record.id]));
+  expect(events).toHaveLength(2);
+  expect(events.at(-1)).toMatchObject({ runId: record.id, taskIndex: null, phase: "progress", succeeded: 1 });
+  expect(JSON.stringify(events)).not.toContain("CLOUD_SENTINEL");
+  expect(events.every(e => e.succeeded + e.running + e.failed <= e.total)).toBe(true);
+  f.release("attached"); expect(await child.done).toBe(0);
+  f.set({ progressNoise: false });
+  const again = f.start(["attach", record.id]);
+  expect(await again.done).toBe(0);
+  expect(ok(f.run(["progress", record.id]))).toHaveLength(2);
+  expect(ok(f.run(["progress", record.id])).at(-1).succeeded).toBe(1);
+});
+
+test("artifacts expose local hashes without promoting failed or unfinished runs", () => {
+  const f = fixture();
+  const record = ok(f.run());
+  expect(ok(f.run(["artifacts", record.id])).artifacts).toEqual([]);
+  ok(f.run(["harvest", record.id]));
+  let artifacts = ok(f.run(["artifacts", record.id])).artifacts;
+  expect(artifacts.map(a => a.kind)).toEqual(["patch", "results"]);
+  expect(artifacts.every(a => a.status === "quarantined" && /^[a-f0-9]{64}$/.test(a.sha256) && existsSync(a.path))).toBe(true);
+  f.set({ remote: "succeeded" }); ok(f.run(["status", record.id]));
+  expect(ok(f.run(["artifacts", record.id])).artifacts.every(a => a.status === "unverified")).toBe(true);
+  f.set({ resultsFailure: true }); error(f.run(["harvest", record.id]), "HARVEST_FAILED");
+  expect(ok(f.run(["artifacts", record.id])).artifacts.every(a => a.status === "quarantined")).toBe(true);
+});
+test("artifact paths reject directory and file symlinks before harvesting", () => {
+  const f = fixture(); const record = ok(f.run());
+  const slices = join(f.root, ".slices"); mkdirSync(slices);
+  symlinkSync(f.root, join(slices, record.sessionId));
+  error(f.run(["harvest", record.id]), "ARTIFACT_PATH");
+  expect(f.events().filter(e => e.kind === "harvest")).toHaveLength(0);
+  rmSync(join(slices, record.sessionId));
+  ok(f.run(["harvest", record.id]));
+  const file = join(slices, record.sessionId, "patch.diff"); rmSync(file); symlinkSync(f.manifest, file);
+  error(f.run(["artifacts", record.id]), "ARTIFACT_PATH");
+});
+test("missing results remain missing and interrupted harvest remains quarantined", async () => {
+  const f = fixture({ resultsMissing: true }); const record = ok(f.run());
+  ok(f.run(["harvest", record.id]));
+  expect(ok(f.run(["artifacts", record.id])).artifacts.map(a => a.kind)).toEqual(["patch"]);
+  f.set({ holdHarvest: true }); const child = f.start(["harvest", record.id]);
+  await until(() => existsSync(join(f.root, "harvesting"))); child.kill("SIGTERM");
+  expect(await child.done).not.toBe(0);
+  expect(ok(f.run(["artifacts", record.id]))).toMatchObject({ harvest: "interrupted", artifacts: [{ kind: "patch", status: "quarantined" }] });
+});
+test("ordinary credential-shaped questions remain valid structured responses", () => {
+  const f = fixture({ question: "Which token budget?" }); const run = ok(f.run());
+  const { questions } = ok(f.run(["questions", run.id]));
+  expect(questions).toHaveLength(1); expect(questions[0].question).toContain("Which token");
+});
+test("attach does not follow an artifact root or implicitly invoke the harvester", async () => {
+  const f = fixture(); const run = ok(f.run());
+  mkdirSync(join(f.root, ".slices")); symlinkSync(f.root, join(f.root, ".slices", run.sessionId));
+  const child = f.start(["attach", run.id]);
+  await until(() => existsSync(join(f.root, "attached"))); f.release("attached");
+  expect(await child.done).toBe(0);
+  expect(f.events().filter(e => ["harvest", "results"].includes(e.kind))).toHaveLength(0);
+  expect(f.record().harvest).toBeNull();
+});
+
+test("option-like steering text is delivered through stdin and kept off child argv", () => {
+  const f = fixture(); const run = ok(f.run());
+  ok(f.run(["steer", run.id, "--task", "0", "--instruction=--force", "--request-id", "option-text"]));
+  const delivery = f.events().find(e => e.kind === "mailbox");
+  expect(delivery.args).toContain("--text-stdin");
+  expect(delivery.args).not.toContain("--force");
+  expect(delivery.args).not.toContain("--text");
+});
+
+test("progress retains only 256 distinct samples from a noisy observer", async () => {
+  const f = fixture({ progressNoise: true, distinctProgress: true }); const run = ok(f.run());
+  const child = f.start(["attach", run.id]);
+  await until(() => existsSync(join(f.root, "attached"))); f.release("attached");
+  expect(await child.done).toBe(0);
+  expect(ok(f.run(["progress", run.id]))).toHaveLength(256);
+}, 15000);
+
+test("questions pass a scoped continuation cursor to the adapter", () => {
+  const f = fixture({ questionPage: true }); const run = ok(f.run());
+  const first = ok(f.run(["questions", run.id])); expect(first.nextCursor).not.toBeNull();
+  const next = ok(f.run(["questions", run.id, "--cursor", first.nextCursor])); expect(next.nextCursor).toBeNull();
+  const delivery = f.events().filter(e => e.kind === "mailbox").at(-1);
+  expect(delivery.args[delivery.args.indexOf("--cursor") + 1]).toBe(first.nextCursor);
+  error(f.run(["questions", run.id, "--cursor", "swarms/another-run/tasks/task-0"]), "INVALID_ARGUMENT");
 });

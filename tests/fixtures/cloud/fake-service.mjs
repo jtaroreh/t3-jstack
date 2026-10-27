@@ -127,6 +127,44 @@ function executionV2(name, session, state) {
   };
 }
 
+if (engine && args[1]?.endsWith("cloud-observe.py")) {
+    event({ kind: "attach", args, cwd: process.cwd() });
+    if (cfg.progressNoise) {
+      process.stdout.write("x".repeat(9000));
+      process.stdout.write("[Cloud Swarm] Progress: 0/2 succeeded, 0 running, 0 failed.\n");
+      console.log("[Cloud Swarm] Progress: 9/2 succeeded, 1 running, 0 failed.");
+      for (let i = 0; i < 270; i++) console.log(`[Cloud Swarm] Progress: ${cfg.distinctProgress ? i % 2 : 0}/2 succeeded, ${cfg.distinctProgress ? 2 - i % 2 : 2} running, 0 failed.`);
+    }
+    process.stdout.write("[Cloud Swarm] Pro");
+    await new Promise(resolve => setTimeout(resolve, 10));
+    console.log(`gress: 1/2 succeeded, 1 running, 0 failed. ${secret}`);
+    await hold("attached");
+    if (cfg.attachFailure) failure();
+    process.exit(0);
+  }
+
+if (engine && args[1]?.endsWith("cloud-results.py")) {
+  event({ kind: "results", args });
+  if (cfg.resultsFailure) failure();
+  const dest = join(option("--destination"), "task-0");
+  mkdirSync(dest, { recursive: true });
+  if (!cfg.resultsMissing) writeFileSync(join(dest, "results.tsv"), "score\tlatency\n10\t4\n");
+  console.log("[]");
+  process.exit(0);
+}
+if (engine && args[1]?.endsWith("cloud-mailbox.py")) {
+  if (args.includes("--text")) throw Error("message payload must not appear on argv");
+  if (args.includes("--text-stdin")) {
+    const text = readFileSync(0, "utf8");
+    if (!text) throw Error("missing stdin message");
+  }
+  event({kind:"mailbox",args});
+  if (cfg.holdMailbox) await hold("mailbox");
+  if (cfg.mailboxFailure) failure();
+  if (!option("--engine")?.endsWith("cloud_dispatch.py") || !option("--session-id")?.startsWith("t3-") || option("--gcs-bucket") !== "test-bucket" || option("--max-tasks") !== "2") throw Error("mailbox context mismatch");
+  console.log(JSON.stringify(cfg.mailboxInvalid ? {bad:true} : option("--verb") === "questions" ? {questions:[{taskIndex:0,seq:1,question:cfg.question ?? "Which test should run?"}],nextCursor:cfg.questionPage && !args.includes("--cursor") ? `swarms/${option("--session-id")}/tasks/task-0/outbox/0001_question.json` : null} : [{taskIndex:Number(option("--task") === "all" ? 0 : option("--task")),seq:1,status:"submitted"}]));
+  process.exit(0);
+}
 if (engine) {
   const booleanFlags = new Set(["--dry-run", "--no-wait", "--vertex", "--preflight"]);
   const valueFlags = new Set(["--manifest", "--session-id", "--gcs-prefix", "--repo", "--job-name", "--region", "--project", "--gcs-bucket", "--model", "--parent-model", "--vertex-location", "--base-branch", "--tasks", "--parallelism", "--max-retries", "--orchestrator-timeout", "--harvest-session", "--wait-execution"]);
@@ -165,13 +203,6 @@ if (engine) {
     mkdirSync(dest, { recursive: true });
     writeFileSync(join(dest, "patch.diff"), "example patch\n");
     console.log(`Harvested patch. ${secret}`);
-    process.exit(0);
-  }
-  if (args.includes("--wait-execution")) {
-    event({ kind: "attach", args, cwd: process.cwd() });
-    console.log(`[Cloud Swarm] Progress: 1/2 succeeded, 1 running, 0 failed. ${secret}`);
-    await hold("attached");
-    if (cfg.attachFailure) failure();
     process.exit(0);
   }
   if (!args.includes("--no-wait")) throw Error("launch must be asynchronous");

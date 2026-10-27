@@ -974,6 +974,24 @@
       "replacement": "hourly schedule_task",
       "rationale": "the plan arms a schedule_task; the checker's marker moves with the template",
       "files": "^skills/poteto-mode/scripts/check-plan\\.(?:mjs|test\\.ts)$"
+    },
+    {
+      "pattern": "## Autonomy",
+      "replacement": "## Autonomy\n\nFor work that spans a handoff, interruption, or repeated verification attempts, use [bounded task recovery](references/task-recovery.md). Keep attempt counts, outstanding task IDs, and verification receipts in the task's existing note. Follow the host's task lifecycle when reconciling live work.",
+      "rationale": "T3 tasks can cross provider handoffs. Keep bounded recovery and receipts in one task note without replaying live delegates or copying Antigravity scheduling and reset behavior.",
+      "files": "^skills/poteto-mode/SKILL\\.md$"
+    },
+    {
+      "pattern": "# Swarm",
+      "replacement": "# Swarm\n\nFor an explicitly requested agystack Cloud Run swarm, read\n[t3-agystack](../t3-agystack/SKILL.md) and use its cloud-controller workflow.\nAgystack owns the external container workers. T3 tracks their controller task.\nThe local worker flow below still applies to swarms running on this machine.\n\nWhen comparing verified local or cloud candidates, use [candidate ranking](references/candidate-ranking.md) for mixed metric directions and optional Pareto filtering. The helper never applies patches.",
+      "rationale": "Preserves the existing agystack Cloud Run adapter route through upstream regeneration without forking the local swarm workflow.",
+      "files": "^skills/swarm/SKILL\\.md$"
+    },
+    {
+      "pattern": "### Autonomous run",
+      "replacement": "### Autonomous run\n\nFor command-based verification, use [the bounded verifier](../references/task-recovery.md#run-a-bounded-verifier) to keep attempts and receipts in the existing task note. T3 still owns wakeups and delegated task lifecycles.",
+      "rationale": "Adds concrete verification receipts to T3 autonomous work without copying Antigravity timers or automatic Git resets.",
+      "files": "^skills/poteto-mode/playbooks/autonomous-run\\.md$"
     }
   ],
   "denylist": [

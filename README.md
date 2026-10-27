@@ -14,7 +14,7 @@ npx -y github:chhoumann/t3-pstack update
 npx -y github:chhoumann/t3-pstack doctor
 ```
 
-`npx -y github:chhoumann/t3-pstack` runs the installer from the latest commit on `main`. That is the rolling channel, the same one each home's marketplace auto-updates from. To run one release's installer, name its tag, as in `npx -y github:chhoumann/t3-pstack#v2.0.0 doctor`.
+`npx -y github:chhoumann/t3-pstack` runs the installer from the latest commit on `main`. That is the rolling channel, the same one each home's marketplace auto-updates from. To run one release's installer, name its tag, as in `npx -y github:chhoumann/t3-pstack#v2.1.0 doctor`.
 
 `install` and `update` are the same command, and a second run changes nothing. With Node 20 or later, it installs or updates the `t3-pstack@t3-pstack` plugin in every Claude Code and Codex config home T3 can run: `~/.claude` and `~/.codex`, `$CLAUDE_CONFIG_DIR` and `$CODEX_HOME`, and the home of each `claudeAgent` and `codex` instance in T3's settings, disabled ones included. Name any other home with `--claude-home <dir>` or `--codex-home <dir>`. Each home's `t3-pstack` marketplace must come from `chhoumann/t3-pstack`, or from `--source <owner/repo|git URL|dir>` on the same run, and a home whose marketplace has another source is left as it is. A local directory needs a path such as `./t3-pstack`, since `owner/repo` always means GitHub. On Codex it also trusts t3-pstack's session-start hook, once its hooks file is the one this release pins. Codex runs a plugin's hook only once it is trusted, and T3's Codex sessions never ask, so without this step the hook never runs. Run `update` after each release.
 
@@ -35,6 +35,10 @@ For a Gemini workhorse with stronger-model review, invoke `$t3-pstack:jtaroreh-m
 Ordinary implementation receives final review. Consequential decisions receive focused preflight advice. Task notes preserve constraints without a separate state machine. These are agent instructions. The [runtime limits](plugins/pstack/skills/jtaroreh-mode/references/runtime-contract.md) distinguish peer review from host tool enforcement. Automatic session-start routing still enters poteto-mode. Neither mode changes the chat model by loading a skill.
 
 The plugin carries 68 skill directories, 24 of them `principle-*` leaves, and 4 agents.
+
+Optional runtime diagnostics use `node tools/install.mjs doctor --runtime local` or `--runtime cloud --agystack-source /path/to/pstack-agy`. They check local executable and Python-package presence. Authentication, quotas, and model availability remain unproven.
+
+The [agystack capability inventory](docs/agystack-capabilities.md) records the T3-specific integrations and their validation.
 
 For Antigravity, use the [agystack integration](docs/antigravity.md). It keeps agystack's playbooks and Cloud Run swarm backend, with T3 owning the controller tasks.
 
