@@ -21,6 +21,7 @@ Bundled skills live at `../<name>/SKILL.md`. This file owns model routing while 
 - A failed or unavailable required review stays blocked. Tests and the workhorse's confidence cannot replace it. Report partial work honestly.
 - Verify on the real artifact with the project's control skill or actual commands. Use [benchmark-checklist](../benchmark-checklist/SKILL.md) before reporting measured performance. Cost and speed improvements remain unproven until measured.
 - Use [how](../how/SKILL.md) for grounding, [technical-writing](../technical-writing/SKILL.md) for documentation, and [unslop](../unslop/SKILL.md) for prose. Use [interrogate](../interrogate/SKILL.md) for requested adversarial panels or a contested design. A panel that inspected the completed artifact and its verification evidence replaces the ordinary final advisor review. A design panel does not.
+- Full plans, designs, and long reports go in a persistent artifact file. Link it in chat using an absolute path. Keep chat to a short summary, material decisions or blockers, and the next action. While this mode is active, this rule overrides bundled guidance to present the full deliverable inline, unless the user explicitly requests it.
 
 ## Principles
 
@@ -63,7 +64,7 @@ Use [poteto-mode's remaining task lifecycle rules](../poteto-mode/SKILL.md#subag
 
 ## Writing the reply
 
-Use [poteto-mode's reply rules](../poteto-mode/SKILL.md#writing-the-reply). Lead with the outcome, actual verification, and material limits. Keep the dispatch ledger compact. Disclose which models ran and any required review that could not run.
+Use [poteto-mode's reply rules](../poteto-mode/SKILL.md#writing-the-reply). Lead with the outcome, actual verification, and material limits. Keep the dispatch ledger compact. Disclose which models ran and any required review that could not run. Follow the artifact rule above without repeating the full document in chat.
 
 ## Comments
 
