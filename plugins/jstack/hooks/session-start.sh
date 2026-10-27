@@ -5,12 +5,14 @@ set -eu
 # Literal plugin paths, so a static reader of the hooks files can follow them.
 case "${1:-}" in
   claude)
-    home_sheet="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/t3-pstack-models.md"
-    reader="${CLAUDE_PLUGIN_ROOT}/skills/setup-pstack/scripts/read-sheet.sh"
+    home_sheet="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/t3-jstack-models.md"
+    old_home_sheet="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/t3-pstack-models.md"
+    reader="${CLAUDE_PLUGIN_ROOT}/skills/setup-jstack/scripts/read-sheet.sh"
     ;;
   codex)
-    home_sheet="${CODEX_HOME:-$HOME/.codex}/t3-pstack-models.md"
-    reader="${CLAUDE_PLUGIN_ROOT}/skills/setup-pstack/scripts/read-sheet.sh"
+    home_sheet="${CODEX_HOME:-$HOME/.codex}/t3-jstack-models.md"
+    old_home_sheet="${CODEX_HOME:-$HOME/.codex}/t3-pstack-models.md"
+    reader="${CLAUDE_PLUGIN_ROOT}/skills/setup-jstack/scripts/read-sheet.sh"
     ;;
   *)
     echo "session-start.sh: unknown runtime '${1:-}' (expected claude or codex)" >&2
@@ -19,9 +21,12 @@ case "${1:-}" in
 esac
 
 # One sheet per machine. Until the installer moves an older home's sheet
-# there, that home's sheet still counts.
-sheet="${XDG_CONFIG_HOME:-$HOME/.config}/t3-pstack/models.md"
+# there, that home's sheet still counts, as does a t3-pstack sheet the rename
+# left behind.
+sheet="${XDG_CONFIG_HOME:-$HOME/.config}/t3-jstack/models.md"
+[ -f "$sheet" ] || sheet="${XDG_CONFIG_HOME:-$HOME/.config}/t3-pstack/models.md"
 [ -f "$sheet" ] || sheet=$home_sheet
+[ -f "$sheet" ] || sheet=$old_home_sheet
 
 # A sheet that cannot be decoded counts as missing, so injection stays on.
 if ! { [ -f "$sheet" ] && [ -r "$sheet" ] && normalized=$(sh "$reader" "$sheet"); }; then

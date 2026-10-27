@@ -9,7 +9,7 @@
 //               the Claude Code marketplace entry, and package.json
 //   plugins/jstack/models.json (the T3 model policy: tier defaults and roles)
 //     -> each model-consuming skill's "## Models" section, interrogate's
-//        reviewer table, and setup-pstack's sheet block (tools/derive-t3.mjs)
+//        reviewer table, and setup-jstack's sheet block (tools/derive-t3.mjs)
 //   plugins/jstack/agents/*.md -> the "agents" list in
 //     plugins/jstack/.claude-plugin/plugin.json (a list replaces the default
 //     agents/ directory, so it names every agent)
@@ -39,7 +39,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
 
-import { panelFamilies, parseEntry } from "../plugins/jstack/skills/setup-pstack/scripts/t3-sheet.mjs";
+import { panelFamilies, parseEntry } from "../plugins/jstack/skills/setup-jstack/scripts/t3-sheet.mjs";
 import { applyRegions, parseFrontmatter, ROUTED_SKILL, t3Regions } from "./derive-t3.mjs";
 import { FROZEN_HOOKS, hookDigest, PLUGIN, SKILLS } from "./plugin.mjs";
 import { pathIsInside, validateSkillsTree, walk } from "./validate-skills.mjs";
@@ -165,7 +165,7 @@ const TIERS = ["default", "strongest", "panel", "workhorse"];
 // Check models.json's shape, throwing with the offending tier, role, or entry
 // named. `skillExists(skill)` reports whether a role's skill directory carries
 // a SKILL.md. Every tier holds T3 entries in the sheet grammar of
-// setup-pstack's t3-sheet.mjs, and the panel spans two model families.
+// setup-jstack's t3-sheet.mjs, and the panel spans two model families.
 export function parseModels(raw, skillExists) {
   const fail = (message) => {
     throw new Error(`models.json: ${message}`);

@@ -27,7 +27,7 @@ import { doctorClaude, installClaude, syncScopedRecords } from "../tools/install
 import { AppServer } from "../tools/install/codex.mjs";
 import { parseSource, writeAtomic } from "../tools/install/common.mjs";
 import { discoverHomes } from "../tools/install/homes.mjs";
-import { doctorSheet, moveSheet } from "../tools/install/sheet.mjs";
+import { doctorSheet, moveSheet, oldSheetPath } from "../tools/install/sheet.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const { roles, tiers } = JSON.parse(readFileSync(join(repoRoot, "plugins/jstack/models.json"), "utf8"));
@@ -379,23 +379,23 @@ describe("the model sheet", () => {
     const root = tmp();
     const homes = [".claude", ".codex", ".codex-pool", ".claude-never-run"].map((name) => ({ dir: join(root, name) }));
     for (const { dir } of homes.slice(0, 3)) mkdirSync(dir);
-    return { root, homes, sheet: join(root, ".config/t3-pstack/models.md") };
+    return { root, homes, sheet: join(root, ".config/t3-jstack/models.md") };
   }
 
   test("moves a linked home sheet to the machine path once and links every existing home to it", () => {
     const { root, homes, sheet } = machine();
-    writeFileSync(join(root, ".claude/t3-pstack-models.md"), SHEET);
-    symlinkSync(join(root, ".claude/t3-pstack-models.md"), join(root, ".codex/t3-pstack-models.md"));
+    writeFileSync(join(root, ".claude/t3-jstack-models.md"), SHEET);
+    symlinkSync(join(root, ".claude/t3-jstack-models.md"), join(root, ".codex/t3-jstack-models.md"));
 
     expect(moveSheet(sheet, homes)).toEqual([
-      `moved the sheet from ${join(root, ".claude/t3-pstack-models.md")}`,
-      `linked ${join(root, ".claude/t3-pstack-models.md")} to it`,
-      `linked ${join(root, ".codex-pool/t3-pstack-models.md")} to it`,
+      `moved the sheet from ${join(root, ".claude/t3-jstack-models.md")}`,
+      `linked ${join(root, ".claude/t3-jstack-models.md")} to it`,
+      `linked ${join(root, ".codex-pool/t3-jstack-models.md")} to it`,
     ]);
     expect(readFileSync(sheet, "utf8")).toBe(SHEET);
-    expect(readlinkSync(join(root, ".claude/t3-pstack-models.md"))).toBe(sheet);
-    expect(readlinkSync(join(root, ".codex/t3-pstack-models.md"))).toBe(join(root, ".claude/t3-pstack-models.md"));
-    expect(readlinkSync(join(root, ".codex-pool/t3-pstack-models.md"))).toBe(sheet);
+    expect(readlinkSync(join(root, ".claude/t3-jstack-models.md"))).toBe(sheet);
+    expect(readlinkSync(join(root, ".codex/t3-jstack-models.md"))).toBe(join(root, ".claude/t3-jstack-models.md"));
+    expect(readlinkSync(join(root, ".codex-pool/t3-jstack-models.md"))).toBe(sheet);
     expect(existsSync(join(root, ".claude-never-run"))).toBe(false);
 
     expect(moveSheet(sheet, homes)).toEqual([]);
@@ -407,50 +407,166 @@ describe("the model sheet", () => {
 
   test("links the machine path to a home sheet's file outside every home instead of copying it", () => {
     const { root, homes, sheet } = machine();
-    const dotfiles = join(root, "dotfiles/t3-pstack-models.md");
+    const dotfiles = join(root, "dotfiles/t3-jstack-models.md");
     mkdirSync(join(root, "dotfiles"));
     writeFileSync(dotfiles, SHEET);
-    symlinkSync(dotfiles, join(root, ".claude/t3-pstack-models.md"));
-    writeFileSync(join(root, ".codex/t3-pstack-models.md"), SHEET);
+    symlinkSync(dotfiles, join(root, ".claude/t3-jstack-models.md"));
+    writeFileSync(join(root, ".codex/t3-jstack-models.md"), SHEET);
 
     expect(moveSheet(sheet, homes)).toEqual([
       `linked the sheet to ${dotfiles}`,
-      `linked ${join(root, ".codex/t3-pstack-models.md")} to it`,
-      `linked ${join(root, ".codex-pool/t3-pstack-models.md")} to it`,
+      `linked ${join(root, ".codex/t3-jstack-models.md")} to it`,
+      `linked ${join(root, ".codex-pool/t3-jstack-models.md")} to it`,
     ]);
     expect(readlinkSync(sheet)).toBe(dotfiles);
-    expect(readlinkSync(join(root, ".claude/t3-pstack-models.md"))).toBe(dotfiles);
+    expect(readlinkSync(join(root, ".claude/t3-jstack-models.md"))).toBe(dotfiles);
     expect(readFileSync(dotfiles, "utf8")).toBe(SHEET);
     expect(moveSheet(sheet, homes)).toEqual([]);
   });
 
   test("keeps a home sheet that links to another file, even one that matches the machine sheet", () => {
     const { root, homes, sheet } = machine();
-    mkdirSync(join(root, ".config/t3-pstack"), { recursive: true });
+    mkdirSync(join(root, ".config/t3-jstack"), { recursive: true });
     writeFileSync(sheet, SHEET);
     mkdirSync(join(root, "dotfiles"));
     writeFileSync(join(root, "dotfiles/models.md"), SHEET);
-    symlinkSync(join(root, "dotfiles/models.md"), join(root, ".claude/t3-pstack-models.md"));
+    symlinkSync(join(root, "dotfiles/models.md"), join(root, ".claude/t3-jstack-models.md"));
 
     expect(moveSheet(sheet, homes)).toEqual([
-      `linked ${join(root, ".codex/t3-pstack-models.md")} to it`,
-      `linked ${join(root, ".codex-pool/t3-pstack-models.md")} to it`,
+      `linked ${join(root, ".codex/t3-jstack-models.md")} to it`,
+      `linked ${join(root, ".codex-pool/t3-jstack-models.md")} to it`,
     ]);
-    expect(readlinkSync(join(root, ".claude/t3-pstack-models.md"))).toBe(join(root, "dotfiles/models.md"));
+    expect(readlinkSync(join(root, ".claude/t3-jstack-models.md"))).toBe(join(root, "dotfiles/models.md"));
   });
 
   test("moves a sheet with its mode, and leaves a file beside it that only shares the old temp name", () => {
     const { root, homes, sheet } = machine();
-    writeFileSync(join(root, ".claude/t3-pstack-models.md"), SHEET, { mode: 0o600 });
-    writeFileSync(join(root, ".claude/t3-pstack-models.md.t3-jstack-link"), "mine\n");
+    writeFileSync(join(root, ".claude/t3-jstack-models.md"), SHEET, { mode: 0o600 });
+    writeFileSync(join(root, ".claude/t3-jstack-models.md.t3-jstack-link"), "mine\n");
 
     moveSheet(sheet, homes);
     expect(mode(sheet)).toBe(0o600);
-    expect(readFileSync(join(root, ".claude/t3-pstack-models.md.t3-jstack-link"), "utf8")).toBe("mine\n");
-    expect(readdirSync(join(root, ".claude")).sort()).toEqual(["t3-pstack-models.md", "t3-pstack-models.md.t3-jstack-link"]);
+    expect(readFileSync(join(root, ".claude/t3-jstack-models.md.t3-jstack-link"), "utf8")).toBe("mine\n");
+    expect(readdirSync(join(root, ".claude")).sort()).toEqual(["t3-jstack-models.md", "t3-jstack-models.md.t3-jstack-link"]);
   });
 
   test("leaves home sheets that disagree, and doctor says so", () => {
+    const { root, homes, sheet } = machine();
+    writeFileSync(join(root, ".claude/t3-jstack-models.md"), SHEET);
+    writeFileSync(join(root, ".codex/t3-jstack-models.md"), "session hook: off\n");
+
+    expect(moveSheet(sheet, homes)).toEqual([]);
+    expect(existsSync(sheet)).toBe(false);
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })).toEqual([
+      {
+        name: "machine sheet",
+        ok: false,
+        detail: `missing; ${join(root, ".claude/t3-jstack-models.md")}, ${join(root, ".codex/t3-jstack-models.md")} differ, so the installer leaves them`,
+        fix: `keep one, then ${FIX}`,
+      },
+    ]);
+  });
+
+  test("keeps a home sheet that differs from an existing machine sheet, and links one that matches", () => {
+    const { root, homes, sheet } = machine();
+    mkdirSync(join(root, ".config/t3-jstack"), { recursive: true });
+    writeFileSync(sheet, SHEET);
+    writeFileSync(join(root, ".claude/t3-jstack-models.md"), SHEET);
+    writeFileSync(join(root, ".codex/t3-jstack-models.md"), "session hook: off\n");
+
+    expect(moveSheet(sheet, homes)).toEqual([
+      `linked ${join(root, ".claude/t3-jstack-models.md")} to it`,
+      `linked ${join(root, ".codex-pool/t3-jstack-models.md")} to it`,
+    ]);
+    expect(lstatSync(join(root, ".codex/t3-jstack-models.md")).isSymbolicLink()).toBe(false);
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })[1]).toEqual({
+      name: "home sheets",
+      ok: false,
+      detail: `${join(root, ".codex/t3-jstack-models.md")} differ from the machine sheet`,
+      fix: `move each aside, then ${FIX} to link it`,
+    });
+  });
+
+  test("oldSheetPath maps the machine sheet onto its t3-pstack twin", () => {
+    expect(oldSheetPath(join("/h/.config/t3-jstack/models.md"))).toBe(join("/h/.config/t3-pstack/models.md"));
+    expect(oldSheetPath(join("/h/xdg/t3-jstack/models.md"))).toBe(join("/h/xdg/t3-pstack/models.md"));
+  });
+
+  test("moves an old machine sheet to the new path and leaves a link at the old one", () => {
+    const { root, homes, sheet } = machine();
+    const old = oldSheetPath(sheet);
+    mkdirSync(join(old, ".."), { recursive: true });
+    writeFileSync(old, SHEET);
+
+    expect(moveSheet(sheet, homes)).toEqual([
+      `moved the sheet from ${old}`,
+      `linked ${old} to it`,
+      `linked ${join(root, ".claude/t3-jstack-models.md")} to it`,
+      `linked ${join(root, ".codex/t3-jstack-models.md")} to it`,
+      `linked ${join(root, ".codex-pool/t3-jstack-models.md")} to it`,
+    ]);
+    expect(readFileSync(sheet, "utf8")).toBe(SHEET);
+    expect(readlinkSync(old)).toBe(sheet);
+
+    expect(moveSheet(sheet, homes)).toEqual([]);
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })).toEqual([
+      { name: "machine sheet valid", ok: true, detail: "every line parses (pass --catalog to check targets)" },
+      { name: "home sheets", ok: true, detail: "none differ from it" },
+    ]);
+  });
+
+  test("moves an old home sheet to the new path and converges both names onto it", () => {
+    const { root, homes, sheet } = machine();
+    writeFileSync(join(root, ".claude/t3-pstack-models.md"), SHEET);
+
+    expect(moveSheet(sheet, homes)).toEqual([
+      `moved the sheet from ${join(root, ".claude/t3-pstack-models.md")}`,
+      `linked ${join(root, ".claude/t3-jstack-models.md")} to it`,
+      `linked ${join(root, ".codex/t3-jstack-models.md")} to it`,
+      `linked ${join(root, ".codex-pool/t3-jstack-models.md")} to it`,
+      `linked ${join(root, ".claude/t3-pstack-models.md")} to it`,
+    ]);
+    expect(readFileSync(sheet, "utf8")).toBe(SHEET);
+    expect(readlinkSync(join(root, ".claude/t3-pstack-models.md"))).toBe(sheet);
+
+    expect(moveSheet(sheet, homes)).toEqual([]);
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })).toEqual([
+      { name: "machine sheet valid", ok: true, detail: "every line parses (pass --catalog to check targets)" },
+      { name: "home sheets", ok: true, detail: "none differ from it" },
+    ]);
+  });
+
+  test("never creates an old home name on a fresh install", () => {
+    const { homes, sheet } = machine();
+    expect(moveSheet(sheet, homes)).toEqual([]);
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })).toEqual([
+      {
+        name: "machine sheet",
+        ok: false,
+        detail: "none, so every role runs on its skill's defaults",
+        fix: "run /t3-jstack:setup-jstack in a T3 thread",
+        warn: true,
+      },
+    ]);
+  });
+
+  test("doctor names an unmoved legacy sheet until the installer moves it", () => {
+    const { root, homes, sheet } = machine();
+    writeFileSync(join(root, ".claude/t3-pstack-models.md"), SHEET);
+
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })).toEqual([
+      {
+        name: "machine sheet",
+        ok: false,
+        detail: `missing; ${join(root, ".claude/t3-pstack-models.md")} not moved yet`,
+        fix: `rerun \`npx -y github:jtaroreh/t3-jstack install\``,
+      },
+    ]);
+    moveSheet(sheet, homes);
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })[0].ok).toBe(true);
+  });
+
+  test("leaves legacy sheets that disagree, and doctor says so", () => {
     const { root, homes, sheet } = machine();
     writeFileSync(join(root, ".claude/t3-pstack-models.md"), SHEET);
     writeFileSync(join(root, ".codex/t3-pstack-models.md"), "session hook: off\n");
@@ -467,26 +583,6 @@ describe("the model sheet", () => {
     ]);
   });
 
-  test("keeps a home sheet that differs from an existing machine sheet, and links one that matches", () => {
-    const { root, homes, sheet } = machine();
-    mkdirSync(join(root, ".config/t3-pstack"), { recursive: true });
-    writeFileSync(sheet, SHEET);
-    writeFileSync(join(root, ".claude/t3-pstack-models.md"), SHEET);
-    writeFileSync(join(root, ".codex/t3-pstack-models.md"), "session hook: off\n");
-
-    expect(moveSheet(sheet, homes)).toEqual([
-      `linked ${join(root, ".claude/t3-pstack-models.md")} to it`,
-      `linked ${join(root, ".codex-pool/t3-pstack-models.md")} to it`,
-    ]);
-    expect(lstatSync(join(root, ".codex/t3-pstack-models.md")).isSymbolicLink()).toBe(false);
-    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })[1]).toEqual({
-      name: "home sheets",
-      ok: false,
-      detail: `${join(root, ".codex/t3-pstack-models.md")} differ from the machine sheet`,
-      fix: `move each aside, then ${FIX} to link it`,
-    });
-  });
-
   test("doctor warns without a sheet and fails on a malformed one", () => {
     const { homes, sheet } = machine();
     expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })).toEqual([
@@ -494,7 +590,7 @@ describe("the model sheet", () => {
         name: "machine sheet",
         ok: false,
         detail: "none, so every role runs on its skill's defaults",
-        fix: "run /t3-jstack:setup-pstack in a T3 thread",
+        fix: "run /t3-jstack:setup-jstack in a T3 thread",
         warn: true,
       },
     ]);
@@ -504,7 +600,7 @@ describe("the model sheet", () => {
       name: "machine sheet valid",
       ok: false,
       detail: 'bug-fix: "claude-opus" does not start with <providerInstanceId>/<modelId>; "how critics" is not a pstack role',
-      fix: "run /t3-jstack:setup-pstack in a T3 thread",
+      fix: "run /t3-jstack:setup-jstack in a T3 thread",
     });
   });
 

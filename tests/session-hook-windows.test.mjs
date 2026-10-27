@@ -12,7 +12,7 @@ const manifest = JSON.parse(readFileSync(join(pluginRoot, ".codex-plugin/plugin.
 const handler = JSON.parse(readFileSync(join(pluginRoot, manifest.hooks), "utf8")).hooks.SessionStart[0].hooks[0];
 const mandate = readFileSync(join(pluginRoot, "hooks/session-start-context.md"), "utf8");
 
-function runHook({ sheet, codexHome, homeSheet, machineSheet, context = mandate, host = "cmd" } = {}) {
+function runHook({ sheet, codexHome, homeSheet, machineSheet, legacyMachineSheet, context = mandate, host = "cmd" } = {}) {
   const fixture = mkdtempSync(join(tmpdir(), "pstack windows hook "));
   try {
     const plugin = join(fixture, "plugin with spaces");
@@ -22,12 +22,16 @@ function runHook({ sheet, codexHome, homeSheet, machineSheet, context = mandate,
     for (const [dir, content] of [[join(profile, ".codex"), homeSheet], [sheetRoot, sheet]]) {
       if (content !== undefined) {
         mkdirSync(dir, { recursive: true });
-        writeSheet(join(dir, "t3-pstack-models.md"), content);
+        writeSheet(join(dir, "t3-jstack-models.md"), content);
       }
     }
     if (machineSheet !== undefined) {
+      mkdirSync(join(profile, ".config/t3-jstack"), { recursive: true });
+      writeSheet(join(profile, ".config/t3-jstack/models.md"), machineSheet);
+    }
+    if (legacyMachineSheet !== undefined) {
       mkdirSync(join(profile, ".config/t3-pstack"), { recursive: true });
-      writeSheet(join(profile, ".config/t3-pstack/models.md"), machineSheet);
+      writeSheet(join(profile, ".config/t3-pstack/models.md"), legacyMachineSheet);
     }
     const contextPath = join(plugin, "hooks/session-start-context.md");
     if (context === null) rmSync(contextPath);
@@ -89,6 +93,14 @@ describe.skipIf(process.platform !== "win32" && !required)("Windows Codex Sessio
   test("the machine sheet decides over the Codex home sheet", () => {
     expect(runHook({ machineSheet: "session hook: off\n", sheet: "session hook: on\n" })).toEqual({ status: 0, out: "", err: "" });
     expect(runHook({ machineSheet: "session hook: on\n", sheet: "session hook: off\n" })).toEqual({
+      status: 0, out: mandate, err: "",
+    });
+  });
+
+  test("a legacy t3-pstack machine sheet still counts when no new sheet exists", () => {
+    expect(runHook({ legacyMachineSheet: "session hook: off\n" })).toEqual({ status: 0, out: "", err: "" });
+    expect(runHook({ legacyMachineSheet: "session hook: on\n" })).toEqual({ status: 0, out: mandate, err: "" });
+    expect(runHook({ machineSheet: "session hook: on\n", legacyMachineSheet: "session hook: off\n" })).toEqual({
       status: 0, out: mandate, err: "",
     });
   });

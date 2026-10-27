@@ -15,16 +15,19 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { deriveT3 } from "../tools/derive-t3.mjs";
 import { loadModels } from "../tools/generate.mjs";
 import {
+  applyRenames,
   applySubstitutions,
+  bootstrapComponent,
   changedLines,
   classify,
   denylistHits,
   mergeFile,
   parseForks,
+  parseRenames,
   parseRule,
   parseSubstitutions,
   syncComponent,
@@ -1420,19 +1423,104 @@ describe("syncComponent", () => {
   });
 });
 
+describe("renamed paths", () => {
+  const renames = { "skills/setup-pstack": "skills/setup-jstack" };
+  const forkEntry = (kind) => ({ kind, why: "Renamed fixture fork.", since: "0.9.48", upstream: "not-proposed" });
+
+  test("at the pin a renamed fork compares against its local path, not upstream's", () => {
+    const upstreamText = "run `/setup-pstack`.\n";
+    const oldDir = tree({ "skills/setup-pstack/SKILL.md": upstreamText });
+    const newDir = tree({ "skills/setup-pstack/SKILL.md": upstreamText });
+    const localDir = tree({ "skills/setup-jstack/SKILL.md": "run `/setup-jstack`, the port fork.\n" });
+    const forks = new Map([["skills/setup-jstack/SKILL.md", forkEntry("port-feature")]]);
+
+    const report = sync({ oldDir, newDir, localDir, renames, forks, atPin: true, dryRun: true });
+
+    expect(report.written).toEqual([]);
+    expect(report.stale).toEqual([]);
+    expect(report.undeclared).toEqual([]);
+    expect(report.portOnly).toEqual([]);
+    expect(report.forked).toEqual([{ rel: "skills/setup-jstack/SKILL.md", changed: 2 }]);
+  });
+
+  test("without the mapping the renamed fork reads as missing upstream and stale", () => {
+    const upstreamText = "run `/setup-pstack`.\n";
+    const oldDir = tree({ "skills/setup-pstack/SKILL.md": upstreamText });
+    const newDir = tree({ "skills/setup-pstack/SKILL.md": upstreamText });
+    const localDir = tree({ "skills/setup-jstack/SKILL.md": "run `/setup-jstack`, the port fork.\n" });
+    const forks = new Map([["skills/setup-jstack/SKILL.md", forkEntry("port-feature")]]);
+
+    const report = sync({ oldDir, newDir, localDir, forks, atPin: true, dryRun: true });
+
+    expect(report.written).toEqual([{ kind: "added", rel: "skills/setup-pstack/SKILL.md" }]);
+    expect(report.stale).toEqual([{ rel: "skills/setup-jstack/SKILL.md", reason: "is no longer forked (port-only)" }]);
+    expect(report.portOnly).toEqual(["skills/setup-jstack/SKILL.md"]);
+  });
+
+  test("derived invocations and links follow the rename mapping", () => {
+    const upstreamText = "run `/setup-pstack` or read [setup](../setup-pstack/SKILL.md).\n";
+    const oldDir = tree({});
+    const newDir = tree({ "skills/setup-pstack/SKILL.md": upstreamText });
+    const localDir = tree({});
+
+    const report = sync({ oldDir, newDir, localDir, renames });
+
+    expect(report.written).toEqual([{ kind: "added", rel: "skills/setup-jstack/SKILL.md" }]);
+    expect(readFileSync(join(localDir, "skills/setup-jstack/SKILL.md"), "utf8")).toBe(
+      "run `/setup-jstack` or read [setup](../setup-jstack/SKILL.md).\n",
+    );
+    expect(existsSync(join(localDir, "skills/setup-pstack/SKILL.md"))).toBe(false);
+  });
+
+  test("applyRenames rewrites the old directory name as a whole token only", () => {
+    expect(applyRenames("run `/setup-pstack` and read ../setup-pstack/SKILL.md.", renames)).toBe(
+      "run `/setup-jstack` and read ../setup-jstack/SKILL.md.",
+    );
+    expect(applyRenames("name: setup-pstack\n", renames)).toBe("name: setup-jstack\n");
+    expect(applyRenames("fall back to the t3-pstack sheet.", renames)).toBe("fall back to the t3-pstack sheet.");
+    expect(applyRenames("run `/setup-pstack`.", {})).toBe("run `/setup-pstack`.");
+  });
+
+  test("bootstrap writes a renamed file to its local path in derived form and keeps its fork", () => {
+    const newDir = tree({ "skills/setup-pstack/SKILL.md": "run `/setup-pstack`.\n" });
+    const localDir = tree({});
+
+    const report = bootstrapComponent({ newDir, localDir, rules: [], renames });
+
+    expect(report.written).toEqual(["skills/setup-jstack/SKILL.md"]);
+    expect(readFileSync(join(localDir, "skills/setup-jstack/SKILL.md"), "utf8")).toBe("run `/setup-jstack`.\n");
+
+    const forks = new Map([["skills/setup-jstack/SKILL.md", forkEntry("port-feature")]]);
+    const kept = bootstrapComponent({ newDir, localDir, rules: [], renames, forks });
+
+    expect(kept.kept).toEqual(["skills/setup-jstack/SKILL.md"]);
+    expect(readFileSync(join(localDir, "skills/setup-jstack/SKILL.md"), "utf8")).toBe("run `/setup-jstack`.\n");
+  });
+});
+
 describe("sync CLI", () => {
   const declareS = (kind) => ({
     "plugins/jstack/skills/s.md": { kind, why: "Fixture fork.", since: "0.9.48", upstream: "not-proposed" },
   });
 
-  function cli({ oldText, newText, localText, forks = {}, substitutions = [] }) {
+  function cli({
+    oldText,
+    newText,
+    localText,
+    forks = {},
+    substitutions = [],
+    upstreamRel = "s.md",
+    localRel = null,
+    renames = {},
+  }) {
     const root = tree({});
     const upstream = join(root, "upstream");
     mkdirSync(join(upstream, "skills"), { recursive: true });
     const git = (...args) => execFileSync("git", ["-C", upstream, ...args], { encoding: "utf8", env: process.env }).trim();
     git("init", "-b", "main");
     const commit = (text) => {
-      writeFileSync(join(upstream, "skills/s.md"), text);
+      mkdirSync(join(upstream, "skills", dirname(upstreamRel)), { recursive: true });
+      writeFileSync(join(upstream, "skills", upstreamRel), text);
       git("add", ".");
       git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--allow-empty", "-m", "update");
       return git("rev-parse", "HEAD");
@@ -1451,9 +1539,11 @@ describe("sync CLI", () => {
     symlinkSync(join(import.meta.dir, "../node_modules"), join(port, "node_modules"));
     cpSync(join(import.meta.dir, "../plugins/jstack/models.json"), join(port, "plugins/jstack/models.json"));
     mkdirSync(join(port, "plugins/jstack/skills"));
-    mkdirSync(join(port, "plugins/jstack/skills/setup-pstack/scripts"), { recursive: true });
-    cpSync(join(import.meta.dir, "../plugins/jstack/skills/setup-pstack/scripts/t3-sheet.mjs"), join(port, "plugins/jstack/skills/setup-pstack/scripts/t3-sheet.mjs"));
-    writeFileSync(join(port, "plugins/jstack/skills/s.md"), localText);
+    mkdirSync(join(port, "plugins/jstack/skills/setup-jstack/scripts"), { recursive: true });
+    cpSync(join(import.meta.dir, "../plugins/jstack/skills/setup-jstack/scripts/t3-sheet.mjs"), join(port, "plugins/jstack/skills/setup-jstack/scripts/t3-sheet.mjs"));
+    const portRel = localRel ?? upstreamRel;
+    mkdirSync(join(port, "plugins/jstack/skills", dirname(portRel)), { recursive: true });
+    writeFileSync(join(port, "plugins/jstack/skills", portRel), localText);
     for (const { skill } of JSON.parse(readFileSync(join(port, "plugins/jstack/models.json"), "utf8")).roles) {
       mkdirSync(join(port, "plugins/jstack/skills", skill), { recursive: true });
       writeFileSync(join(port, "plugins/jstack/skills", skill, "SKILL.md"), "");
@@ -1462,7 +1552,7 @@ describe("sync CLI", () => {
       join(port, "tools/upstream.json"),
       JSON.stringify({
         remote: upstream,
-        components: { kit: { upstreamPath: "skills", localPath: "plugins/jstack/skills", sha: oldSha } },
+        components: { kit: { upstreamPath: "skills", localPath: "plugins/jstack/skills", sha: oldSha, renames } },
       }),
     );
     writeFileSync(join(port, "tools/forks.json"), JSON.stringify({ kit: forks }));
@@ -1528,7 +1618,7 @@ describe("sync CLI", () => {
     expect(result.stderr).not.toContain("tools/forks.json");
     const portOnly = [
       ...roleSkills.map((skill) => `${skill}/SKILL.md`),
-      "setup-pstack/scripts/t3-sheet.mjs",
+      "setup-jstack/scripts/t3-sheet.mjs",
     ];
     expect(result.stdout).toContain(`\nport-only: ${portOnly.length} files\n`);
     for (const rel of portOnly) expect(result.stdout).toContain(`\n  plugins/jstack/skills/${rel}\n`);
@@ -1682,6 +1772,46 @@ describe("sync CLI", () => {
     expect(kept.status).toBe(0);
     expect(kept.stdout).toContain("fork kept: plugins/jstack/skills/s.md");
     expect(local()).toBe("the port's fork\n");
+  });
+
+  test("parseRenames keeps the mapping and rejects a rename to itself, a trailing slash, or a shared target", () => {
+    const renames = { "skills/setup-pstack": "skills/setup-jstack" };
+    expect(parseRenames(renames, "kit")).toBe(renames);
+    expect(parseRenames(undefined, "kit")).toEqual({});
+    for (const bad of [
+      { "skills/s.md": "skills/s.md" },
+      { "skills/a/": "skills/b" },
+      { "skills/a": "skills/b", "skills/c": "skills/b" },
+    ]) {
+      expect(() => parseRenames(bad, "kit")).toThrow("upstream.json kit renames:");
+    }
+  });
+
+  test("at the pin a renamed fork declared under its local path passes the dry run", () => {
+    const upstreamText = "run `/setup-pstack` or read [setup](../setup-pstack/SKILL.md).\n";
+    const { runAt, oldSha } = cli({
+      oldText: upstreamText,
+      newText: upstreamText,
+      localText: "run `/setup-jstack`, the port fork.\n",
+      forks: {
+        "plugins/jstack/skills/setup-jstack/SKILL.md": {
+          kind: "port-feature",
+          why: "Fixture rename fork.",
+          since: "0.9.48",
+          upstream: "not-proposed",
+        },
+      },
+      upstreamRel: "setup-pstack/SKILL.md",
+      localRel: "setup-jstack/SKILL.md",
+      renames: { "setup-pstack": "setup-jstack" },
+    });
+
+    const result = runAt(oldSha, "--dry-run");
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).not.toContain("FAIL");
+    expect(result.stdout).toContain("plugins/jstack/skills/setup-jstack/SKILL.md");
+    expect(result.stdout).not.toContain("setup-pstack/SKILL.md");
   });
 
   test("--clone reads upstream from a local clone", () => {

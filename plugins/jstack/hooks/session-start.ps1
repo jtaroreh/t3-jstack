@@ -1,17 +1,24 @@
 $ErrorActionPreference = 'Stop'
 
 # One sheet per machine. Until the installer moves an older home's sheet
-# there, that home's sheet still counts.
+# there, that home's sheet still counts, as does a t3-pstack sheet the rename
+# left behind.
 $configRoot = $env:XDG_CONFIG_HOME
 if (-not $configRoot) {
     $configRoot = Join-Path $env:USERPROFILE '.config'
 }
-$sheet = Join-Path $configRoot 't3-pstack\models.md'
+$sheet = Join-Path $configRoot 't3-jstack\models.md'
+if (-not (Test-Path -LiteralPath $sheet -PathType Leaf)) {
+    $sheet = Join-Path $configRoot 't3-pstack\models.md'
+}
 if (-not (Test-Path -LiteralPath $sheet -PathType Leaf)) {
     $sheetRoot = $env:CODEX_HOME
     if (-not $sheetRoot) {
         $sheetRoot = Join-Path $env:USERPROFILE '.codex'
     }
+    $sheet = Join-Path $sheetRoot 't3-jstack-models.md'
+}
+if (-not (Test-Path -LiteralPath $sheet -PathType Leaf)) {
     $sheet = Join-Path $sheetRoot 't3-pstack-models.md'
 }
 $off = $false

@@ -3,11 +3,13 @@
 //
 //   bun tools/sync.mjs <component> <new-sha> [--dry-run] [--bootstrap] [--clone <dir>]
 //
-// Reads tools/upstream.json (remote, per-component pin, and the `exclude`
-// list of upstream paths the port deliberately does not carry) and
+// Reads tools/upstream.json (remote, per-component pin, the `renames` map of
+// upstream path prefixes the port carries under another local path, and the
+// `exclude` list of upstream paths the port deliberately does not carry) and
 // tools/substitutions.json (the rewrites that put upstream's Cursor text into
 // its T3 form, plus a denylist of Cursor terms that need a human sentence, not
-// a token swap), and tools/forks.json (each path the port forks on purpose).
+// a token swap), and tools/forks.json (each path the port forks on purpose, by
+// its local spelling).
 // Each upstream file is derived into its port form (substitutions, then the
 // port's frontmatter and stamped regions via deriveT3) and compared three ways:
 //
@@ -170,6 +172,60 @@ export function parseForks(registry, components) {
   );
 }
 
+// An upstream path prefix the port carries under another local path, per
+// component (`renames` in tools/upstream.json, each side relative to its
+// root: the upstream side to `upstreamPath`, the local side to `localPath`).
+// The comparison, the write, and the fork declaration all use the local path;
+// the exclusion list, the substitution scopes, and the carried-elsewhere list
+// keep the upstream path.
+export function parseRenames(renames, component) {
+  if (renames === undefined) return {};
+  const fail = (message) => {
+    throw new Error(`upstream.json ${component} renames: ${message}`);
+  };
+  if (renames === null || typeof renames !== "object" || Array.isArray(renames)) fail("must be an object");
+  const targets = new Set();
+  for (const [from, to] of Object.entries(renames)) {
+    if (typeof from !== "string" || !from || typeof to !== "string" || !to) {
+      fail("each rename maps a non-empty upstream path to a non-empty local path");
+    }
+    if (from === to) fail(`"${from}" renames to itself`);
+    if (from.endsWith("/") || to.endsWith("/")) fail(`"${from}" must not end in a slash`);
+    if (targets.has(to)) fail(`"${to}" is the target of more than one rename`);
+    targets.add(to);
+  }
+  return renames;
+}
+
+// Remap `rel` through `table` (upstream prefixes to local ones, or the
+// reverse), matching whole path segments with the longest prefix first. A
+// path under no prefix maps to itself.
+const remap = (rel, table) => {
+  const hit = Object.keys(table)
+    .filter((prefix) => rel === prefix || rel.startsWith(`${prefix}/`))
+    .sort((a, b) => b.length - a.length)[0];
+  return hit ? table[hit] + rel.slice(hit.length) : rel;
+};
+
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// Rewrite the references a rename leaves behind in derived text: the old
+// directory's skill invocation (`/setup-pstack`), links to files under it
+// (`../setup-pstack/SKILL.md`), and prose naming it, each as a whole token so
+// hyphenated neighbors such as `t3-pstack` are untouched. The old names come
+// from the mapping, not per-sentence rules, so a future upstream sentence
+// naming the old path follows the rename without a new rule.
+export function applyRenames(text, renames) {
+  let out = text;
+  for (const from of Object.keys(renames).sort((a, b) => b.length - a.length)) {
+    const oldBase = from.split("/").at(-1);
+    const newBase = renames[from].split("/").at(-1);
+    if (!oldBase || oldBase === newBase) continue;
+    out = out.replaceAll(new RegExp(`(?<![\\w-])${escapeRegExp(oldBase)}(?![\\w-])`, "g"), newBase);
+  }
+  return out;
+}
+
 // `rules` come from parseSubstitutions.
 export function applySubstitutions(text, rules, rel = "") {
   const counts = new Map();
@@ -326,9 +382,12 @@ const lstatIn = (dir, name) => lstatSync(join(dir, name), { throwIfNoEntry: fals
 // an undeclared fork lands in `undeclared` and blocks every write, and an entry
 // whose path is not forked lands in `stale`. A stale entry blocks every write
 // only when `atPin`: at a new SHA it is a fork upstream just absorbed, so the
-// sync goes ahead. `lookUp` is the one question whose answer depends on how
-// the filesystem folds names, so a test can stand in for a filesystem that
-// folds. Returns the report and, unless dryRun, applies it.
+// sync goes ahead. `renames` maps upstream path prefixes to the local paths
+// the port carries them under; the comparison, the write, and the fork check
+// use the local path, and the old directory's invocations and links are
+// rewritten from the same mapping. `lookUp` is the one question whose answer
+// depends on how the filesystem folds names, so a test can stand in for a
+// filesystem that folds. Returns the report and, unless dryRun, applies it.
 export function syncComponent({
   oldDir,
   newDir,
@@ -339,6 +398,7 @@ export function syncComponent({
   carriedElsewhere = [],
   derive = (_, t) => t,
   forks = null,
+  renames = {},
   atPin = false,
   dryRun = false,
   lookUp = lstatIn,
@@ -358,10 +418,16 @@ export function syncComponent({
     counts: new Map(),
     hits: [],
   };
+  // A renamed upstream path compares, writes, and reports under its local
+  // path. Every other list keeps its own frame: exclusions, substitution
+  // scopes, and carried-elsewhere paths stay upstream-relative, while forks
+  // and the local tree stay local-relative.
+  const toLocalRel = (rel) => remap(rel, renames);
+  const toUpstreamRel = (rel) => remap(rel, Object.fromEntries(Object.entries(renames).map(([from, to]) => [to, from])));
   const portForm = (rel, raw) => {
     if (isBinary(rel, raw)) return { bytes: raw, counts: new Map(), binary: true };
     const sub = applySubstitutions(raw.toString("utf8"), rules, rel);
-    return { bytes: Buffer.from(derive(rel, sub.text)), counts: sub.counts };
+    return { bytes: Buffer.from(derive(toLocalRel(rel), applyRenames(sub.text, renames))), counts: sub.counts };
   };
   const listed = (dir) => new Set(walk(dir).map((file) => relative(dir, file)));
   const [oldPaths, newPaths, localPaths] = [listed(oldDir), listed(newDir), listed(localDir)];
@@ -392,25 +458,45 @@ export function syncComponent({
   // A port link where upstream has a directory is reported at the link, and
   // nothing under it is read or written, since each write would land in its target.
   const dirsAbove = (rel) => rel.split("/").slice(0, -1).map((_, i, parts) => parts.slice(0, i + 1).join("/"));
-  const upstreamDirs = new Set([...oldPaths, ...newPaths].filter((rel) => !isExcluded(rel, exclude)).flatMap(dirsAbove));
+  const upstreamDirs = new Set(
+    [...oldPaths, ...newPaths].filter((rel) => !isExcluded(rel, exclude)).flatMap((rel) => dirsAbove(toLocalRel(rel))),
+  );
   const isLink = (rel) => localPaths.has(rel) && lstatSync(join(localDir, rel)).isSymbolicLink();
-  const outcomeOf = (rel) => {
-    if (isExcluded(rel, exclude)) return newPaths.has(rel) ? { kind: "excluded" } : null;
-    if (dirsAbove(rel).some(isLink)) return null;
-    if (!oldPaths.has(rel) && !newPaths.has(rel)) {
-      if (upstreamDirs.has(rel) && isLink(rel)) return { kind: "symlink" };
-      return elsewhere.has(rel) ? null : { kind: "port-only" };
-    }
+  // Outcomes carry the local path: a renamed upstream path reports, writes,
+  // and matches its fork entry under that spelling.
+  const outcomeOfUpstream = (rel) => {
+    if (isExcluded(rel, exclude)) return newPaths.has(rel) ? { kind: "excluded", rel } : null;
+    const lrel = toLocalRel(rel);
+    if (dirsAbove(lrel).some(isLink)) return null;
     try {
-      return classify({ old: upstream(oldDir, oldPaths, rel), new: upstream(newDir, newPaths, rel), local: portCopy(rel) });
+      const result = classify({
+        old: upstream(oldDir, oldPaths, rel),
+        new: upstream(newDir, newPaths, rel),
+        local: portCopy(lrel),
+      });
+      return result ? { rel: lrel, ...result } : null;
     } catch (error) {
       throw new Error(`${rel}: ${error.message}`, { cause: error });
     }
   };
-  const outcomes = [...new Set([...newPaths, ...oldPaths, ...localPaths])].flatMap((rel) => {
-    const outcome = outcomeOf(rel);
-    return outcome ? [{ rel, ...outcome }] : [];
-  });
+  const outcomeOfLocalOnly = (lrel) => {
+    if (isExcluded(toUpstreamRel(lrel), exclude)) return null;
+    if (dirsAbove(lrel).some(isLink)) return null;
+    if (upstreamDirs.has(lrel) && isLink(lrel)) return { rel: lrel, kind: "symlink" };
+    return elsewhere.has(lrel) ? null : { rel: lrel, kind: "port-only" };
+  };
+  const outcomes = [
+    ...[...new Set([...newPaths, ...oldPaths])].flatMap((rel) => {
+      const outcome = outcomeOfUpstream(rel);
+      return outcome ? [outcome] : [];
+    }),
+    ...[...localPaths]
+      .filter((lrel) => !oldPaths.has(toUpstreamRel(lrel)) && !newPaths.has(toUpstreamRel(lrel)))
+      .flatMap((lrel) => {
+        const outcome = outcomeOfLocalOnly(lrel);
+        return outcome ? [outcome] : [];
+      }),
+  ];
 
   // A write reaches the tree by upstream's spelling, and the filesystem picks
   // the entry. Where it folds case or normalises Unicode that can be one
@@ -516,29 +602,41 @@ export function unusedRules(rules, trees) {
 // derived form, except a declared fork that the port already holds. Returns
 // the files it writes, the forks it keeps, and denylist hits, which block
 // every write, as does a symlink on either side.
-export function bootstrapComponent({ newDir, localDir, rules, denylist = [], exclude = [], derive = (_, t) => t, forks = new Map(), dryRun = false }) {
+export function bootstrapComponent({
+  newDir,
+  localDir,
+  rules,
+  denylist = [],
+  exclude = [],
+  derive = (_, t) => t,
+  forks = new Map(),
+  renames = {},
+  dryRun = false,
+}) {
   const report = { written: [], kept: [], symlinks: [], hits: [] };
   const writes = [];
   for (const file of walk(newDir)) {
     const rel = relative(newDir, file);
     if (isExcluded(rel, exclude)) continue;
-    const local = lstatSync(join(localDir, rel), { throwIfNoEntry: false });
+    // A renamed upstream path reads, keeps, and writes under its local path.
+    const lrel = remap(rel, renames);
+    const local = lstatSync(join(localDir, lrel), { throwIfNoEntry: false });
     if (lstatSync(file).isSymbolicLink() || local?.isSymbolicLink()) {
-      report.symlinks.push(rel);
+      report.symlinks.push(lrel);
       continue;
     }
-    if (forks.has(rel) && local) {
-      report.kept.push(rel);
-      const bytes = readFileSync(join(localDir, rel));
-      if (!isBinary(rel, bytes)) report.hits.push(...denylistHits(rel, bytes.toString("utf8"), denylist));
+    if (forks.has(lrel) && local) {
+      report.kept.push(lrel);
+      const bytes = readFileSync(join(localDir, lrel));
+      if (!isBinary(lrel, bytes)) report.hits.push(...denylistHits(lrel, bytes.toString("utf8"), denylist));
       continue;
     }
     const raw = readFileSync(file);
     const binary = isBinary(rel, raw);
-    const bytes = binary ? raw : Buffer.from(derive(rel, applySubstitutions(raw.toString("utf8"), rules, rel).text));
-    if (!binary) report.hits.push(...denylistHits(rel, bytes.toString("utf8"), denylist));
-    writes.push({ rel, bytes, mode: gitMode(lstatSync(file).mode) });
-    report.written.push(rel);
+    const bytes = binary ? raw : Buffer.from(derive(lrel, applyRenames(applySubstitutions(raw.toString("utf8"), rules, rel).text, renames)));
+    if (!binary) report.hits.push(...denylistHits(lrel, bytes.toString("utf8"), denylist));
+    writes.push({ rel: lrel, bytes, mode: gitMode(lstatSync(file).mode) });
+    report.written.push(lrel);
   }
   if (dryRun || report.hits.length || report.symlinks.length) return report;
   for (const { rel, bytes, mode } of writes) {
@@ -595,6 +693,7 @@ function main() {
   const forks =
     parseForks(JSON.parse(readFileSync(join(repo, "tools/forks.json"), "utf8")), upstream.components)[component] ??
     new Map();
+  const renames = parseRenames(spec.renames, component);
   const models = loadModels(repo);
   const derive = (rel, text) => deriveT3(join(spec.localPath, rel), text, models);
 
@@ -626,6 +725,7 @@ function main() {
         exclude: spec.exclude ?? [],
         derive,
         forks,
+        renames,
         dryRun: dryRun || unused.length > 0,
       });
       console.log(`\n${dryRun ? "dry run; " : ""}bootstrap from ${newSha}: ${report.written.length} derived, ${report.kept.length} forks kept`);
@@ -660,6 +760,7 @@ function main() {
       carriedElsewhere: pathsOtherComponentsCarry(join(scratch, "clone"), upstream.components, component),
       derive,
       forks,
+      renames,
       atPin,
       dryRun: dryRun || unused.length > 0,
     });

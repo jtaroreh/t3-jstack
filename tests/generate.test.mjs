@@ -95,11 +95,11 @@ describe("regions", () => {
   });
 
   test("a strict stamp throws when an owned file lost its anchor, and a sync stamp leaves it alone", () => {
-    const text = "---\nname: setup-pstack\ndescription: d\n---\n\n### 5. Write the rule\n\n```\nold\n```\n";
-    expect(() => applyRegions("plugins/jstack/skills/setup-pstack/SKILL.md", text, models, { strict: true })).toThrow(
-      "plugins/jstack/skills/setup-pstack/SKILL.md: no anchor for the sheet block to stamp",
+    const text = "---\nname: setup-jstack\ndescription: d\n---\n\n### 5. Write the rule\n\n```\nold\n```\n";
+    expect(() => applyRegions("plugins/jstack/skills/setup-jstack/SKILL.md", text, models, { strict: true })).toThrow(
+      "plugins/jstack/skills/setup-jstack/SKILL.md: no anchor for the sheet block to stamp",
     );
-    expect(applyRegions("plugins/jstack/skills/setup-pstack/SKILL.md", text, models)).toBe(text);
+    expect(applyRegions("plugins/jstack/skills/setup-jstack/SKILL.md", text, models)).toBe(text);
   });
 
   test("interrogate's reviewer table gets one row per panel entry", () => {
@@ -192,7 +192,8 @@ describe("deriveT3", () => {
   test("appends and stamps a Models section when upstream has none, naming the sheet and the entry grammar", () => {
     const out = deriveT3("plugins/jstack/skills/how/SKILL.md", front(""), models);
     expect(out).toContain("body\n\n## Models\n\nRole defaults on T3, stamped from `plugins/jstack/models.json`.");
-    expect(out).toContain("`t3-pstack-models.md`");
+    expect(out).toContain("`t3-jstack-models.md`");
+    expect(out).toContain("`t3-pstack`");
     expect(out).toContain("It splits at its first `/`");
     expect(out.endsWith("- how explainer: `claudeAgent/claude-opus-5-5 effort=xhigh`\n")).toBe(true);
     expect(deriveT3("plugins/jstack/skills/how/SKILL.md", out, models)).toBe(out);
@@ -293,7 +294,7 @@ describe("plan, changes, apply", () => {
   test("a hand edit to a stamped Models line or to the sheet block is restored", () => {
     const root = repoCopy();
     const how = "plugins/jstack/skills/how/SKILL.md";
-    const setup = "plugins/jstack/skills/setup-pstack/SKILL.md";
+    const setup = "plugins/jstack/skills/setup-jstack/SKILL.md";
     const text = (rel) => readFileSync(join(root, rel), "utf8");
     writeFileSync(join(root, how), text(how).replace(/^- how explorer: .*$/m, "- how explorer: stale"));
     writeFileSync(join(root, setup), text(setup).replace(/^bug-fix: .*$/m, "bug-fix: stale"));

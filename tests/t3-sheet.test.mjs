@@ -10,10 +10,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadModels } from "../tools/generate.mjs";
-import { checkSheet, family, parseEntry, parseSheet } from "../plugins/jstack/skills/setup-pstack/scripts/t3-sheet.mjs";
+import { checkSheet, family, parseEntry, parseSheet } from "../plugins/jstack/skills/setup-jstack/scripts/t3-sheet.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const script = join(root, "plugins/jstack/skills/setup-pstack/scripts/t3-sheet.mjs");
+const script = join(root, "plugins/jstack/skills/setup-jstack/scripts/t3-sheet.mjs");
 const catalogPath = join(root, "tests/fixtures/t3-catalog.json");
 const catalog = JSON.parse(readFileSync(catalogPath, "utf8"));
 const { roles, tiers: defaults } = loadModels();
@@ -77,8 +77,8 @@ describe("checkSheet without a catalog", () => {
 });
 
 describe("checkSheet against a catalog", () => {
-  test("the default sheet setup-pstack writes dispatches", () => {
-    const setup = readFileSync(join(root, "plugins/jstack/skills/setup-pstack/SKILL.md"), "utf8");
+  test("the default sheet setup-jstack writes dispatches", () => {
+    const setup = readFileSync(join(root, "plugins/jstack/skills/setup-jstack/SKILL.md"), "utf8");
     const sheet = setup.match(/```markdown\n(# pstack model configuration \(T3\)[\s\S]*?)```/)[1];
     expect(parseSheet(sheet)).toHaveLength(roles.filter((r) => !r.optional).length + 1);
     expect(check(sheet)).toEqual([]);
@@ -195,7 +195,7 @@ describe("checkSheet against a catalog", () => {
     expect(check("bug-fix: claudeAgent/claude-fable-5-1, grok/grok-4.7")).toEqual(["bug-fix: takes one entry, not a list"]);
   });
 
-  // Upstream renamed the role in 0.15.21. A sheet setup-pstack wrote before
+  // Upstream renamed the role in 0.15.21. A sheet setup-jstack wrote before
   // that keeps the old label, which still counts.
   test("a strongest judgment line is checked as the hardest tasks role, and setting both fails", () => {
     expect(check("strongest judgment: grok/grok-4.7 reasoningEffort=xhigh")).toEqual([]);
@@ -282,7 +282,7 @@ describe("the T3 session-start context", () => {
       env: { PATH: process.env.PATH, HOME: home, CLAUDE_PLUGIN_ROOT: pluginRoot, GIT_CONFIG_GLOBAL: "/dev/null" },
     });
     expect(result.status).toBe(0);
-    for (const phrase of ["t3-jstack:poteto-mode", "t3-pstack-models.md", "delegate_task"]) {
+    for (const phrase of ["t3-jstack:poteto-mode", "t3-jstack-models.md", "t3-pstack", "delegate_task"]) {
       expect(result.stdout).toContain(phrase);
     }
   });

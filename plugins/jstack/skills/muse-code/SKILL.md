@@ -26,7 +26,7 @@ Do not approve imported hooks merely to enable skills. The current session hook 
 
 Call `orchestrator_capabilities` before dispatch. Use the exact provider instance ID, model ID, runtime modes, and option IDs it advertises. A provider named `muse` can be disabled. A Muse model offered by another provider is a different target with its own options.
 
-If the short catalog omits a requested Muse model, search capabilities for that model. A disabled provider, an absent model, or a provider unable to run child tasks is unavailable. Report the reason. Preserve the model sheet and do not switch providers without authorization. Use [setup-pstack](../setup-pstack/SKILL.md) when the user requests role changes.
+If the short catalog omits a requested Muse model, search capabilities for that model. A disabled provider, an absent model, or a provider unable to run child tasks is unavailable. Report the reason. Preserve the model sheet and do not switch providers without authorization. Use [setup-jstack](../setup-jstack/SKILL.md) when the user requests role changes.
 
 On T3, dispatch through `delegate_task`. Give writing children `isolation: "worktree"`; T3 creates and binds the checkout. Record task IDs and obey each result's `next` instruction. Cancel an abandoned child with `task_cancel` before replacing work it could still write. Use `task_status` to confirm cancellation, not to poll a running child. Give children explicit scope and no further delegation unless the task requires it.
 

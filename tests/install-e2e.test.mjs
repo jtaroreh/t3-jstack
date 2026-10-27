@@ -157,6 +157,7 @@ describe.skipIf(!enabled)("the installer, end to end", () => {
     mkdirSync(join(home, ".claude"), { recursive: true });
     writeFileSync(join(home, ".claude/t3-pstack-models.md"), SHEET);
     symlinkSync(join(home, ".claude/t3-pstack-models.md"), join(codexHome, "t3-pstack-models.md"));
+    // The released per-home sheet is the legacy name; the installer migrates it.
 
     // A second Claude home with a stale project-scope record for the home folder.
     const pool = join(home, ".claude-pool");
@@ -190,7 +191,7 @@ describe.skipIf(!enabled)("the installer, end to end", () => {
     ]);
     expect(failing(row(report, ".codex-work").checks)).toEqual(["installed: the home does not exist"]);
     expect(failing(report.sheet.checks)).toEqual([
-      `machine sheet: missing; ${join(home, ".claude/t3-pstack-models.md")}, ${join(home, ".codex/t3-pstack-models.md")} not moved yet`,
+      `machine sheet: missing; ${join(home, ".claude/t3-pstack-models.md")}, ${join(home, ".codex/t3-pstack-models.md")} not moved yet`, // legacy sheets
     ]);
   }, 300_000);
 
@@ -212,11 +213,13 @@ describe.skipIf(!enabled)("the installer, end to end", () => {
     expect(pool[1]).toStartWith("backed up plugins/installed_plugins.json to ");
     expect(report.sheet.steps).toEqual([
       `moved the sheet from ${join(home, ".claude/t3-pstack-models.md")}`,
+      `linked ${join(home, ".claude/t3-jstack-models.md")} to it`,
+      `linked ${join(home, ".codex/t3-jstack-models.md")} to it`,
+      `linked ${join(home, ".claude-pool/t3-jstack-models.md")} to it`,
+      `linked ${join(home, ".codex-work/t3-jstack-models.md")} to it`,
       `linked ${join(home, ".claude/t3-pstack-models.md")} to it`,
-      `linked ${join(home, ".claude-pool/t3-pstack-models.md")} to it`,
-      `linked ${join(home, ".codex-work/t3-pstack-models.md")} to it`,
     ]);
-    expect(readFileSync(join(home, ".config/t3-pstack/models.md"), "utf8")).toBe(SHEET);
+    expect(readFileSync(join(home, ".config/t3-jstack/models.md"), "utf8")).toBe(SHEET);
 
     const after = await probe(join(home, ".codex"));
     console.log("after:", JSON.stringify(after));

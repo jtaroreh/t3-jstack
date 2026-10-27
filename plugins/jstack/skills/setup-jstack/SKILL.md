@@ -1,11 +1,11 @@
 ---
-name: setup-pstack
-description: Configure which T3 provider and model pstack uses per role and at what reasoning budget. Detects the models T3 can run and writes the model sheet that overrides the skill defaults. Use for /setup-pstack, "configure pstack models", "pstack budget", or changing pstack's model choices.
+name: setup-jstack
+description: Configure which T3 provider and model pstack uses per role and at what reasoning budget. Detects the models T3 can run and writes the model sheet that overrides the skill defaults. Use for /setup-jstack, "configure pstack models", "pstack budget", or changing pstack's model choices.
 ---
 
 # Setup pstack
 
-Write the model sheet, `~/.config/t3-pstack/models.md` (`$XDG_CONFIG_HOME/t3-pstack/models.md` when that is set), one per machine. It sets pstack's T3 provider and model per role, and every pstack skill reads it before it dispatches.
+Write the model sheet, `~/.config/t3-jstack/models.md` (`$XDG_CONFIG_HOME/t3-jstack/models.md` when that is set), one per machine. It sets pstack's T3 provider and model per role, and every pstack skill reads it before it dispatches.
 
 ## Steps
 
@@ -17,7 +17,7 @@ Call `orchestrator_capabilities`, or `acp-mcp-call orchestrator_capabilities '{}
 
 ### 2. Load current state
 
-The default role-to-target mapping is the sheet shape in step 5 below. If the sheet already exists, read it and treat its `# budget` line and its role values as the current choices. If it does not, read `t3-pstack-models.md` in the host's config directory (`$CLAUDE_CONFIG_DIR` or `~/.claude` on Claude Code, `$CODEX_HOME` or `~/.codex` on Codex), where releases before 2.0.0-rc.3 kept the sheet, the same way. Otherwise start from those defaults. Use the roles and aliases in `<plugin root>/models.json` as the vocabulary, including optional mode roles shown as comments in step 5. Preserve existing explicit optional entries. A line whose role is not in that registry, such as `how critics`, is from a retired role. Drop it. Carry a `strongest judgment` value over to `hardest tasks`, its new name. Also drop any value that is not a T3 entry, such as a bare family name, a `claude-` slug, or an `@<level>` suffix, and a `default effort` line.
+The default role-to-target mapping is the sheet shape in step 5 below. Read the machine sheet when it exists and treat its `# budget` line and its role values as the current choices. Whether or not it exists, also read every legacy location without changing it: the `t3-pstack` machine sheet (`~/.config/t3-pstack/models.md`, `$XDG_CONFIG_HOME/t3-pstack/models.md` when that is set, where releases before the rename kept the sheet) and both `t3-jstack-models.md` and `t3-pstack-models.md` in each host's config directory (`$CLAUDE_CONFIG_DIR` or `~/.claude` on Claude Code, `$CODEX_HOME` or `~/.codex` on Codex). Step 5 preserves what these hold, so read them before deciding anything. When the machine sheet is absent and the legacy locations hold exactly one distinct content between them, treat it the same way. When nothing is found anywhere, start from the defaults. When the legacy locations disagree with each other, or with an existing machine sheet, report each differing path and ask which file's choices to build on (or the defaults); never merge sheets or silently prefer one. Use the roles and aliases in `<plugin root>/models.json` as the vocabulary, including optional mode roles shown as comments in step 5. Preserve existing explicit optional entries. A line whose role is not in that registry, such as `how critics`, is from a retired role. Drop it. Carry a `strongest judgment` value over to `hardest tasks`, its new name. Also drop any value that is not a T3 entry, such as a bare family name, a `claude-` slug, or an `@<level>` suffix, and a `default effort` line.
 
 ### 3. Budget, map, and confirm
 
@@ -36,11 +36,11 @@ The default role-to-target mapping is the sheet shape in step 5 below. If the sh
 
 ### 4. Validate
 
-Write the candidate to a temp file. Call `orchestrator_capabilities` again and save its result to a temp file as `{"providers": [...]}`, copying verbatim the entry of every provider instance the candidate or the defaults name. Run `node <plugin root>/skills/setup-pstack/scripts/t3-sheet.mjs <candidate> <catalog.json>`, where `<plugin root>` is the directory that holds this plugin's `skills/`, and fix every line it prints. If `node` is missing, check each entry against the catalog by reading, and say so. A nonoptional role with no line runs on its default, so add a line if this machine cannot run it. Leave unselected optional roles omitted. Their modes validate resolved defaults when invoked.
+Write the candidate to a temp file. Call `orchestrator_capabilities` again and save its result to a temp file as `{"providers": [...]}`, copying verbatim the entry of every provider instance the candidate or the defaults name. Run `node <plugin root>/skills/setup-jstack/scripts/t3-sheet.mjs <candidate> <catalog.json>`, where `<plugin root>` is the directory that holds this plugin's `skills/`, and fix every line it prints. If `node` is missing, check each entry against the catalog by reading, and say so. A nonoptional role with no line runs on its default, so add a line if this machine cannot run it. Leave unselected optional roles omitted. Their modes validate resolved defaults when invoked.
 
 ### 5. Write the sheet
 
-Overwrite the sheet with the candidate, creating its directory and writing through any symlink at its path (resolve it with `realpath`). If a different file is already there, run the checker on it and ask before you replace it. Overwrite the whole file so re-runs stay idempotent. Then replace `t3-pstack-models.md` in the host's config directory with a link to the sheet (`ln -sf`), so an older t3-pstack reads the same sheet. Step 2 already read what it held. On Codex, remove any pstack model rows an earlier setup pasted into `<codex-home>/AGENTS.md`. With every default kept, the sheet reads:
+Write the candidate to the sheet path, creating its directory. When the path is absent, write it. When it is a symlink, resolve it with `realpath`: a link the installer manages (into a config home) is followed, while a link to a file outside every config home, such as a dotfiles checkout, is the user's own file, so keep the link and write through it only with explicit approval. When a different file already holds the path, run the checker on it, show what it holds, and ask before replacing it; on a refusal leave it and report that the sheet was not written. Write the whole file so re-runs stay idempotent. Then point each host's `t3-jstack-models.md` at the sheet with a link (`ln -sf`), creating it when absent: leave an existing symlink exactly as it is so no linked file is orphaned, and when an existing file's bytes differ from the new sheet, leave it in place and report it, linking it only with explicit approval. For the `t3-pstack` machine sheet and each `t3-pstack-models.md` that already exists, never create one that is not there: leave a symlink as it is, replace a byte-identical file with a link to the sheet so an older install reads the same sheet, and leave a differing file in place and report it, converting it only with explicit approval. Step 2 already read what each held. On Codex, ask before removing any pstack model rows an earlier setup pasted into `<codex-home>/AGENTS.md`. With every default kept, the sheet reads:
 
 ```markdown
 # pstack model configuration (T3). One line per role. Delete a line to fall back to the skill default.

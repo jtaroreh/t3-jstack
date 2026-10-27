@@ -15,7 +15,7 @@ See [cloud operations](../plugins/jstack/skills/t3-agystack/references/cloud-ope
 
 ## Existing owners retained
 
-Model tiers, independent review roles, and provider options belong to the model sheet and setup-pstack. T3 lifecycle tools own scheduling and child cancellation. The cloud bridge already owns dispatch, launch recovery, remote cancellation, attachment, and harvesting. Agystack's engine already supplies matrix manifests and cloud partner-model execution. These capabilities were retained rather than copied into a competing controller.
+Model tiers, independent review roles, and provider options belong to the model sheet and setup-jstack. T3 lifecycle tools own scheduling and child cancellation. The cloud bridge already owns dispatch, launch recovery, remote cancellation, attachment, and harvesting. Agystack's engine already supplies matrix manifests and cloud partner-model execution. These capabilities were retained rather than copied into a competing controller.
 
 Task notes already distinguish durable deliverables from scratch evidence and link verification artifacts. Recovery extends that note rather than creating another state database.
 

@@ -4,7 +4,7 @@
 // `<providerInstanceId>/<modelId>` plus `<optionId>=<value>` pairs, or
 // `inherit-parent` (alias `auto`). An entry maps one to one onto a
 // `delegate_task` target, so this file is the only place the grammar lives:
-// the generator checks the models.json tiers with it, and setup-pstack checks
+// the generator checks the models.json tiers with it, and setup-jstack checks
 // a sheet against the live `orchestrator_capabilities` catalog with it.
 //
 //   node t3-sheet.mjs <sheet.md> <catalog.json>
@@ -49,7 +49,7 @@ export function panelFamilies(entries) {
 }
 
 // Every line but blank lines and `#` headings, as `{ line, key, value }`, with
-// no key or value when the line is not exactly `<key>: <value>`. setup-pstack
+// no key or value when the line is not exactly `<key>: <value>`. setup-jstack
 // writes the sheet, so it holds no prose, and one strict rule leaves no shape a
 // misspelled role line can slip through.
 export function parseSheet(markdown) {

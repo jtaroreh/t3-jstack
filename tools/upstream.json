@@ -5,6 +5,9 @@
       "upstreamPath": "pstack",
       "localPath": "plugins/jstack",
       "sha": "e73df471cd4bd918367e99f3dd9c51bd53ddf5f0",
+      "renames": {
+        "skills/setup-pstack": "skills/setup-jstack"
+      },
       "exclude": [
         ".cursor-plugin/",
         ".gitignore",

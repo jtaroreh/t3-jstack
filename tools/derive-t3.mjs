@@ -77,10 +77,10 @@ export const fenceUnder = (title, lang) => (lines) => {
 };
 
 const SHEET =
-  "A role line in the model sheet overrides each one. The sheet is `~/.config/t3-pstack/models.md` " +
-  "(`$XDG_CONFIG_HOME/t3-pstack/models.md` when that is set), one per machine, and `/setup-pstack` writes it. " +
-  "When it is missing, read `t3-pstack-models.md` in the host's config directory (`$CLAUDE_CONFIG_DIR` or " +
-  "`~/.claude` on Claude Code, `$CODEX_HOME` or `~/.codex` on Codex). An entry is `<providerInstanceId>/<modelId>` plus `<optionId>=<value>` pairs, and it " +
+  "A role line in the model sheet overrides each one. The sheet is `~/.config/t3-jstack/models.md` " +
+  "(`$XDG_CONFIG_HOME/t3-jstack/models.md` when that is set), one per machine, and `/setup-jstack` writes it. " +
+  "When it is missing, read `t3-jstack-models.md` in the host's config directory (`$CLAUDE_CONFIG_DIR` or " +
+  "`~/.claude` on Claude Code, `$CODEX_HOME` or `~/.codex` on Codex), falling back to the `t3-pstack` machine sheet and home sheet an older install wrote. An entry is `<providerInstanceId>/<modelId>` plus `<optionId>=<value>` pairs, and it " +
   "maps onto `delegate_task`'s `target`, with the provider instance as `providerInstanceId`, the model as `model`, " +
   "and the pairs as `options`. It splits at its first `/`, so a model ID with its own `/`, such as OpenCode's " +
   "`<provider>/<model>`, is written whole after it. Option IDs differ per provider, so take them from " +
@@ -96,7 +96,7 @@ export function modelsSection(models, roles) {
   return `Role defaults on T3, stamped from \`plugins/jstack/models.json\`. ${SHEET}\n\n${roles.map((r) => roleLine(models, r)).join("\n")}`;
 }
 
-// The sheet setup-pstack writes when the user keeps every default.
+// The sheet setup-jstack writes when the user keeps every default.
 export function sheetBlock(models) {
   const rows = models.roles.map((r) => `${r.optional ? "# " : ""}${r.role}: ${entries(models, r).join(", ")}`);
   return [
@@ -132,7 +132,7 @@ export function t3Regions(models) {
       render: () => reviewers.map((m, i) => `| Reviewer ${String.fromCharCode(65 + i)} | ${code(m)} |`),
     },
     {
-      file: skillFile("setup-pstack"),
+      file: skillFile("setup-jstack"),
       name: "sheet block",
       locate: fenceUnder("Write the sheet", "markdown"),
       render: () => sheetBlock(models),
