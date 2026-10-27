@@ -1,6 +1,6 @@
 # t3-jstack
 
-Joel Taroreh's fork of [t3-pstack](https://github.com/chhoumann/t3-pstack) by Christian Bager Bach Houmann, based on Lauren Tan's pstack. Plugin identity is `t3-jstack`; existing model-sheet paths remain unchanged.
+Joel Taroreh's fork of [t3-pstack](https://github.com/chhoumann/t3-pstack) by Christian Bager Bach Houmann, now maintained as t3-jstack, based on Lauren Tan's pstack. Plugin identity is `t3-jstack`; existing model-sheet paths remain unchanged.
 
 pstack for [T3 Code](https://github.com/pingdotgg/t3code). It is Lauren Tan's (poteto's) [pstack](https://github.com/cursor/plugins/tree/main/pstack), with its Cursor mechanics rewritten in place for T3. Every subagent, panel, fan-out, schedule, and PR watch dispatches through T3's `t3-code` MCP tools, so an `interrogate`, `arena`, or `architect` panel can run Claude, GPT, and Grok reviewers side by side, from a Claude Code thread or a Codex thread.
 
@@ -58,7 +58,7 @@ Bug reports, documentation fixes, and T3 improvements are welcome. Run `bun tool
 
 ## License
 
-t3-jstack is [MIT-licensed](LICENSE). Its T3 modifications and additions are © 2026 Christian Bager Bach Houmann. It builds on:
+t3-jstack is [MIT-licensed](LICENSE). Its T3 modifications and additions are © 2026 Christian Bager Bach Houmann and Joel Taroreh. It builds on:
 
 - [pstack](https://github.com/cursor/plugins/tree/main/pstack) in cursor/plugins, MIT, © 2026 Lauren Tan (poteto), the skill stack itself.
 - [pstack-claude](https://github.com/michael-denyer/pstack-claude), MIT, © 2026 Michael Denyer, whose sync, generator, and validation tooling and transcript finder this port still uses.

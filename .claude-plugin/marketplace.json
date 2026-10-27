@@ -1,8 +1,8 @@
 {
   "name": "t3-jstack",
   "owner": {
-    "name": "Christian Bager Bach Houmann",
-    "url": "https://github.com/chhoumann"
+    "name": "Joel Taroreh",
+    "url": "https://github.com/jtaroreh"
   },
   "description": "pstack for T3 Code: Lauren Tan's pstack rewritten in place for T3, with every subagent, panel, schedule, and PR watch dispatched through T3's orchestration so panels mix Claude, GPT, and Grok.",
   "plugins": [

@@ -23,4 +23,4 @@ t3-jstack has no server or telemetry. Anything its skills ask your agent to read
 
 ## License
 
-MIT. Original pstack © 2026 Lauren Tan; imported cursor-team-kit and thermos skills © 2026 Cursor; T3 modifications © 2026 Christian Bager Bach Houmann. See [NOTICE.md](https://github.com/jtaroreh/t3-jstack/blob/main/NOTICE.md).
+MIT. Original pstack © 2026 Lauren Tan; imported cursor-team-kit and thermos skills © 2026 Cursor; T3 modifications © 2026 Christian Bager Bach Houmann and Joel Taroreh. See [NOTICE.md](https://github.com/jtaroreh/t3-jstack/blob/main/NOTICE.md).
