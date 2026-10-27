@@ -7,10 +7,10 @@ import { chmodSync, chownSync, existsSync, mkdtempSync, readFileSync, realpathSy
 import { tmpdir } from "node:os";
 import { basename, delimiter, dirname, extname, join, resolve } from "node:path";
 
-export const PLUGIN_ID = "t3-pstack@t3-pstack";
-export const MARKETPLACE = "t3-pstack";
-export const HOME_REPO = "chhoumann/t3-pstack";
-export const INSTALL_HINT = "rerun `npx -y github:chhoumann/t3-pstack install`";
+export const PLUGIN_ID = "t3-jstack@t3-jstack";
+export const MARKETPLACE = "t3-jstack";
+export const HOME_REPO = "jtaroreh/t3-jstack";
+export const INSTALL_HINT = "rerun `npx -y github:jtaroreh/t3-jstack install`";
 
 // `~`, `~/` and `~\` expand as T3 expands them (provider-core
 // pathExpansion.ts). `~user` does not.
@@ -58,7 +58,7 @@ export function codexSource(entry) {
   return { key: JSON.stringify(entry), label: JSON.stringify(entry) };
 }
 
-// The marketplace check both doctors run. A marketplace named t3-pstack from
+// The marketplace check both doctors run. A marketplace named t3-jstack from
 // any source but the trusted ones is not installed from, nor its hook trusted.
 export function marketplaceCheck(sources, trusted, remove) {
   if (!sources.length) return check("marketplace", false, "none", INSTALL_HINT);
@@ -89,7 +89,7 @@ export const pluginIntact = (root, manifest, skills) =>
 let neutral;
 export function neutralCwd() {
   if (!neutral) {
-    neutral = mkdtempSync(join(tmpdir(), "t3-pstack-"));
+    neutral = mkdtempSync(join(tmpdir(), "t3-jstack-"));
     process.on("exit", () => rmSync(neutral, { recursive: true, force: true }));
   }
   return neutral;
@@ -154,7 +154,7 @@ export function runCli(bin, args, env) {
 
 // A path beside `path` that nothing holds. Creating it with the `wx` flag or
 // symlinkSync fails rather than replace a file someone else put there.
-export const tempBeside = (path) => join(dirname(path), `.${basename(path)}.${randomUUID()}.t3-pstack.tmp`);
+export const tempBeside = (path) => join(dirname(path), `.${basename(path)}.${randomUUID()}.t3-jstack.tmp`);
 
 // A crash between the write and the rename leaves the old file whole. The
 // rename lands on the symlink's target, so a settings file one home links

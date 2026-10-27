@@ -18,7 +18,7 @@ Both verbs accept:
 | `--agystack-source DIR` | agystack plugin directory, default `<gemini-home>/plugins/agystack` |
 | `--json` | machine-readable report on stdout |
 
-Exit codes are 0 for success, 1 for a blocked install, a degraded doctor, or a projection that is absent, 2 for a usage error. With `--json` every outcome, usage errors included, is a parseable report on stdout. Install it once installed t3-pstack puts the `t3-antigravity` bin on PATH; from a clone, `node tools/antigravity.mjs` works directly.
+Exit codes are 0 for success, 1 for a blocked install, a degraded doctor, or a projection that is absent, 2 for a usage error. With `--json` every outcome, usage errors included, is a parseable report on stdout. Install it once installed t3-jstack puts the `t3-antigravity` bin on PATH; from a clone, `node tools/antigravity.mjs` works directly.
 
 Inspect without touching anything:
 
@@ -35,7 +35,7 @@ The destination is `<gemini-home>/skills`, and nothing else.
 
 - One real skill directory per agystack source skill. Its `SKILL.md` is the native bytes with a T3-only routing note inserted after the frontmatter, and a `t3-agystack generated` comment bound to the native source hash. The native text is byte-for-byte preserved; the note is the only insertion.
 - One relative symlink per other native file, so every relative pointer inside a projected skill, including nested `scripts/...` and `references/...`, reads native content from the plugin source. Links point through `../../../plugins/agystack/...` style relative paths, so a moved home keeps resolving as long as it moves together. Directory symlinks are deliberately not used, because a directory symlink lets `../` paths escape into the source tree and bypass projected overrides.
-- The adapter skill `t3-agystack`, copied byte-for-byte from the installed t3-pstack package. Its bridge scripts (`scripts/cloud-run.mjs` and the sibling modules) are copied as a set when the package ships them, keeping the skill's relative references working.
+- The adapter skill `t3-agystack`, copied byte-for-byte from the installed t3-jstack package. Its bridge scripts (`scripts/cloud-run.mjs` and the sibling modules) are copied as a set when the package ships them, keeping the skill's relative references working.
 - A manifest at `<gemini-home>/skills/.t3-agystack-manifest.json` (schema 1). It records exactly the projection's own entries: path, kind, content hash, the native anchor hash, and link targets. Nothing else is listed there, and user-owned files are never adopted into it.
 
 ## Safety behavior

@@ -10,7 +10,7 @@ import { checkSheet, parseSheet } from "../../plugins/pstack/skills/setup-pstack
 import { check, INSTALL_HINT, tempBeside, writeAtomic } from "./common.mjs";
 
 export const HOME_SHEET = "t3-pstack-models.md";
-const SETUP_HINT = "run /t3-pstack:setup-pstack in a T3 thread";
+const SETUP_HINT = "run /t3-jstack:setup-pstack in a T3 thread";
 
 export const sheetPath = (env, home) =>
   join(env.XDG_CONFIG_HOME?.trim() ? resolve(env.XDG_CONFIG_HOME.trim()) : join(home, ".config"), "t3-pstack", "models.md");
