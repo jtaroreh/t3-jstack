@@ -13,6 +13,7 @@ Bundled skills live at `../<name>/SKILL.md`. This file owns model routing while 
 
 - Acknowledge the task before consulting. State the next useful action. No filler or claims about work that has not happened.
 - Gemini owns routine investigation, implementation, and verification. Do not replace it with a frontier implementer merely because the task touches several files.
+- Changes to agent behavior are consequential, non-trivial code regardless of file format, file count, or diff size. Documentation that drives behavior, such as skills, playbooks, prompts, agent definitions, model routing, and hooks, is code, never trivial documentation, even when the file is Markdown. These changes always need consultation and independent final review.
 - Consult before consequential architecture choices, concurrency or security changes, irreversible actions, and high-stakes conclusions. Also consult when the evidence leaves competing explanations or an attempted fix fails. These triggers apply regardless of the workhorse's confidence.
 - Ordinary implementation needs one independent review of the completed change, not an additional mandatory plan review. Trivial formatting and contained mechanical edits use direct verification. File count and line count alone do not create a second review.
 - Give the advisor the question, relevant raw requirements, actual source or diff including new files, and check results. Ask for an actionable decision. Do not send an entire transcript by default.
@@ -75,7 +76,7 @@ Match the task using [poteto-mode's playbook index](../poteto-mode/SKILL.md#play
 - Investigation, bug fix, runtime forensics, and trace forensics. Gemini gathers the evidence. Consult on an unresolved interpretation or a consequential recommendation.
 - Feature and refactoring. Keep grounding, the throughput checkpoint, verification, and PR preparation. Gemini implements directly instead of dispatching another code owner. Use a focused advisor preflight when a consequential design choice needs judgment. Run an architecture panel when the user requests one or the design remains contested.
 - Perf issue and hillclimb. Gemini runs the experiment. The advisor challenges the proposed explanation and evidence before accepting a measured result.
-- Prototype, visual parity, and skill authoring. Gemini builds or writes. Check the actual artifact. Apply ordinary final review when the change is nontrivial.
+- Prototype, visual parity, and skill authoring. Gemini builds or writes. Check the actual artifact. Apply ordinary final review when the change is nontrivial. Skill-authoring changes that affect agent behavior always get final advisor review regardless of diff size.
 - Babysit, shipping, and autonomous programs. Keep their independent gates and watcher behavior. Their stronger review requirements take precedence. Do not add a duplicate advisor pass over an already-reviewed unchanged artifact.
 
 Use the shared Opening a PR playbook when a PR is part of delivery. Before review, run [no-comments](../no-comments/SKILL.md). Before commit, run [deslop](../deslop/SKILL.md). Required panels and real checks still gate completion.
