@@ -6,7 +6,7 @@ Enforced action gates require host code at the tool dispatcher. That code must b
 
 Send a factual acknowledgment before consulting. Run safe inspection while the advisor works when useful. Continue after the advisor result at a message boundary. This mode assumes no support for changing system instructions inside an active generation and promises no latency target.
 
-Provider logs must establish cache hits. Identical text alone does not establish KV reuse across Gemini and a different advisor model or provider. Stable evidence can help repeated calls within each provider's supported caching arrangement. See the [OpenAI caching guide](https://developers.openai.com/api/docs/guides/prompt-caching) and [Claude caching guide](https://platform.claude.com/docs/en/build-with-claude/prompt-caching).
+Provider logs must establish cache hits. Identical text alone does not establish KV reuse across the workhorse and a different advisor model or provider. Stable evidence can help repeated calls within each provider's supported caching arrangement. See the [OpenAI caching guide](https://developers.openai.com/api/docs/guides/prompt-caching) and [Claude caching guide](https://platform.claude.com/docs/en/build-with-claude/prompt-caching).
 
 Log probabilities are optional provider data, not calibrated correctness scores. Missing log probabilities do not remove the mode's consultation triggers.
 
