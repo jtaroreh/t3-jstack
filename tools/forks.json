@@ -20,7 +20,7 @@
     },
     "plugins/jstack/skills/poteto-mode/playbooks/shipping.md": {
       "kind": "policy",
-      "why": "Adds --match-head-commit <head> to the GitHub merge in step 4, the head guard from Michael Denyer's pstack-claude, with the current head whose verdict survives step 3's patch-id rule, so a head pushed after that check cannot land, and stops step 5's watcher loop at a merge gate that needs a person.",
+      "why": "Adds --match-head-commit <head> to the GitHub merge in step 4, the head guard from Michael Denyer's pstack-claude, with the current head whose verdict survives step 3's patch-id rule, so a head pushed after that check cannot land, and stops step 5's watcher loop at a merge gate that needs a person. Has the root rerun one of the verifier's listed commands at the verdict SHA before trusting the verdict, per poteto-mode's Verification step 1.",
       "since": "2.0.0-rc.2",
       "upstream": "not-proposed"
     },
@@ -99,7 +99,13 @@
     "plugins/jstack/skills/architect/SKILL.md": {
       "kind": "policy",
       "why": "Runs arena only when the user asks for a design bakeoff or the design is contested, so a large design that is agreed does not start a panel, matching poteto-mode's Verification step 5.",
-      "since": "2.1.1",
+      "since": "2.2.0",
+      "upstream": "not-proposed"
+    },
+    "plugins/jstack/skills/poteto-mode/playbooks/autopilot-full.md": {
+      "kind": "policy",
+      "why": "Runs the swarm's gate and live lanes on the swarm workers entry and keeps one cross-family lane that audits the diff only for what no run decides, per poteto-mode's Verification order, and has the root rerun one gate before counting the verdict.",
+      "since": "2.2.0",
       "upstream": "not-proposed"
     }
   }

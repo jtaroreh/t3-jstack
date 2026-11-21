@@ -82,7 +82,7 @@ Use [poteto-mode's reply rules](../poteto-mode/SKILL.md#writing-the-reply). Lead
 
 ## Comments
 
-Use [poteto-mode's comment rules](../poteto-mode/SKILL.md#comments). Keep only comments that explain a non-obvious reason the code cannot express.
+Run [no-comments](../no-comments/SKILL.md) before review. Keep only comments that explain a non-obvious reason the code cannot express.
 
 ## Playbooks
 
