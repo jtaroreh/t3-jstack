@@ -129,7 +129,7 @@ function main() {
       process.exit(1);
     };
     if (outsideProfile) {
-      const detail = `the inferred projection path resolves outside the T3 profile, at ${outsideProfile}; pass --gemini-home ${dirname(destSkillsDir)} to allow this destination explicitly`;
+      const detail = `the inferred projection path resolves outside the T3 profile, at ${outsideProfile}; pass --gemini-home ${dirname(destSkillsDir)} --agystack-source ${sourceRoot} to allow this destination explicitly`;
       emitBlocked(
         { status: "blocked", problems: [{ path: destSkillsDir, code: "outside-profile", detail }], dest: destSkillsDir, manifest: join(destSkillsDir, MANIFEST_NAME) },
         `install blocked before any write (nothing was written):\n  outside-profile ${destSkillsDir}: ${detail}`,

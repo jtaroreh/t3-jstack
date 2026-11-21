@@ -639,8 +639,12 @@ describe("the CLI on a T3 machine", () => {
     const result = machine.run("install");
     expect(result.status).toBe(1);
     expect(result.report).toMatchObject({ status: "blocked", problems: [{ code: "outside-profile" }] });
-    expect(result.report.problems[0].detail).toContain(`--gemini-home ${join(machine.profiles.antigravity, "config")}`);
+    const hint = result.report.problems[0].detail;
+    expect(hint).toContain(`--gemini-home ${join(machine.profiles.antigravity, "config")} --agystack-source ${join(machine.userGemini, "plugins/agystack")}`);
     expect(readdirSync(unrelated)).toEqual([]);
+    const followed = machine.run("install", ...hint.slice(hint.indexOf("--gemini-home")).replace(/ to allow.*$/, "").split(" "));
+    expect(followed.status, JSON.stringify(followed.report)).toBe(0);
+    expect(existsSync(join(unrelated, "how/SKILL.md"))).toBe(true);
     rmSync(machine.home, { recursive: true, force: true });
   });
 

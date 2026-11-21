@@ -25,6 +25,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { adapterNote, insertNote } from "../tools/install/agystack.mjs";
 import { doctorAntigravity, installAntigravity } from "../tools/install/antigravity.mjs";
 import { doctorClaude, installClaude, syncScopedRecords } from "../tools/install/claude.mjs";
 import { AppServer, pinCheck } from "../tools/install/codex.mjs";
@@ -830,7 +831,8 @@ describe("Antigravity", () => {
     const skills = join(home.dir, "config/skills");
     const manifest = join(skills, ".t3-agystack-manifest.json");
     const projected = join(skills, "how/SKILL.md");
-    const generated = "---\nname: how\n---\n<!-- t3-agystack generated SKILL.md (tools/antigravity.mjs). native anchor 0123456789abcdef -->\n";
+    const generated = insertNote("---\nname: how\n---\nNative body.\n", adapterNote("0123456789abcdef"));
+    const own = (bytes) => writeJson(manifest, { schema: 1, entries: [{ kind: "generated-skill", path: "how/SKILL.md", hash: createHash("sha256").update(bytes).digest("hex"), anchor: "0123456789abcdef" }] });
     const names = () => doctorAntigravity(home, agy).map((c) => c.name);
     writeJson(manifest, { schema: 1, entries: [] });
     expect(names()).toEqual(["installed", "enabled"]);
@@ -839,7 +841,7 @@ describe("Antigravity", () => {
     writeFileSync(projected, generated);
     expect(names()).toEqual(["installed", "enabled"]);
 
-    writeJson(manifest, { schema: 1, entries: [{ kind: "generated-skill", path: "how/SKILL.md", hash: createHash("sha256").update(generated).digest("hex"), anchor: "0123456789abcdef" }] });
+    own(generated);
     const checks = doctorAntigravity(home, agy);
     expect(checks.slice(0, 2).every((c) => c.ok)).toBe(true);
     expect(checks[2]).toMatchObject({ name: "agystack projection", ok: false, warn: true });
@@ -847,8 +849,14 @@ describe("Antigravity", () => {
     expect(checks[2].detail).toContain("(how)");
     expect(checks[2].fix).toContain(manifest);
 
+    writeFileSync(projected, `${generated}A local note appended after install.\n`);
+    expect(names()).toContain("agystack projection");
+
     rmSync(manifest);
+    writeFileSync(projected, generated);
     expect(doctorAntigravity(home, agy)[2].fix).toContain(projected);
+    writeFileSync(projected, "---\nname: how\n---\nAn example of the generated note:\n\n```\n" + adapterNote("0123456789abcdef") + "```\n");
+    expect(names()).toEqual(["installed", "enabled"]);
     writeFileSync(projected, "---\nname: how\n---\nMy notes on the t3-agystack generated SKILL.md files.\n");
     expect(names()).toEqual(["installed", "enabled"]);
     rmSync(projected);

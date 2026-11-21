@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { MANIFEST_NAME } from "./agystack.mjs";
+import { MANIFEST_NAME, carriesNote } from "./agystack.mjs";
 import { check, pluginIntact, readJson, tempBeside } from "./common.mjs";
 
 export const ANTIGRAVITY_MANIFEST = ".antigravity-plugin/plugin.json";
@@ -52,9 +52,9 @@ export function installAntigravity(home, { pluginRoot, version, skills }) {
 
 // The opt-in agystack projection (tools/antigravity.mjs) beside the plugin
 // gives the profile two skills of each name both ship. A projected SKILL.md is
-// one the manifest records at its current bytes, or one carrying the
-// projection's generated comment line when no manifest is readable.
-const GENERATED = /^<!-- t3-agystack generated SKILL\.md .*native anchor [0-9a-f]+ -->$/m;
+// one the manifest records at its current bytes, or one carrying the whole
+// routing note where the projection inserts it, at a path the manifest lists
+// when a manifest is readable.
 const isFile = (path) => statSync(path, { throwIfNoEntry: false })?.isFile() ?? false;
 function ownedSkills(skillsDir) {
   try {
@@ -71,8 +71,9 @@ function bothPresent(home, path) {
     const file = join(skillsDir, name, "SKILL.md");
     if (!isFile(file)) return false;
     const bytes = readFileSync(file);
-    const hash = owned?.get(`${name}/SKILL.md`);
-    return hash ? createHash("sha256").update(bytes).digest("hex") === hash : !owned && GENERATED.test(bytes.toString("utf8"));
+    const key = `${name}/SKILL.md`;
+    if (owned && !owned.has(key)) return false;
+    return (owned && createHash("sha256").update(bytes).digest("hex") === owned.get(key)) || carriesNote(bytes.toString("utf8"));
   };
   const pluginSkills = join(path, "skills");
   const twice = existsSync(pluginSkills) ? readdirSync(pluginSkills).filter((name) => isFile(join(pluginSkills, name, "SKILL.md")) && projected(name)) : [];

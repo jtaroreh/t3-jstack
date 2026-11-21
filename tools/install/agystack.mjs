@@ -129,6 +129,21 @@ export function insertNote(sourceText, note) {
   return note + sourceText;
 }
 
+// Whether `text` carries the whole routing note where insertNote puts it, so
+// a generated SKILL.md still reads as generated after a local edit elsewhere,
+// and a user skill that only quotes the note does not.
+export function carriesNote(text) {
+  const anchor = /native anchor ([0-9a-f]{16}) -->/.exec(text)?.[1];
+  if (!anchor) return false;
+  const note = adapterNote(anchor);
+  if (!/^---\r?\n/.test(text)) return text.startsWith(note);
+  const lines = text.split(/(?<=\n)/);
+  for (let i = 1; i < lines.length; i += 1) {
+    if (/^---\r?\n?$/.test(lines[i])) return lines.slice(i + 1).join("").startsWith(note);
+  }
+  return text.startsWith(note);
+}
+
 // Every skill directory under `<source>/skills` this projection would draw
 // from. Names must be portable Agent Skills names, and `t3-agystack` is
 // reserved for the adapter itself.
