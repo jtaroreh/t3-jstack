@@ -100,7 +100,7 @@ This is a peer-review workflow, not a host tool interceptor. It cannot enforce t
 
 Role defaults on T3, stamped from `plugins/jstack/models.json`. A role line in the model sheet overrides each one. The sheet is `~/.config/t3-jstack/models.md` (`$XDG_CONFIG_HOME/t3-jstack/models.md` when that is set), one per machine, and `/setup-jstack` writes it. When it is missing, read `t3-jstack-models.md` in the host's config directory (`$CLAUDE_CONFIG_DIR` or `~/.claude` on Claude Code, `$CODEX_HOME` or `~/.codex` on Codex), falling back to the `t3-pstack` machine sheet and home sheet an older install wrote. An entry is `<providerInstanceId>/<modelId>` plus `<optionId>=<value>` pairs, and it maps onto `delegate_task`'s `target`, with the provider instance as `providerInstanceId`, the model as `model`, and the pairs as `options`. It splits at its first `/`, so a model ID with its own `/`, such as OpenCode's `<provider>/<model>`, is written whole after it. Option IDs differ per provider, so take them from `orchestrator_capabilities`. `inherit-parent` or `auto` omits `target`.
 
-- jtaroreh workhorse: `antigravity/gemini-3.8-flash-high`
+- jtaroreh workhorse: `antigravity/gemini-3.8-flash thought_level=high`
 - jtaroreh advisor: `claudeAgent/claude-opus-5-5 effort=xhigh`
 - jtaroreh takeover: `claudeAgent/claude-fable-5-2 effort=xhigh`
 
@@ -108,6 +108,6 @@ Role defaults on T3, stamped from `plugins/jstack/models.json`. A role line in t
 
 Edit this section and the `## Models` list above to change models; the body of this skill intentionally names no model strings. The workhorse is any fast/cheap model. Other providers with the same roles are fallbacks, not competing defaults; the `## Models` list above stays authoritative and a model-sheet line overrides it.
 
-- jtaroreh workhorse: `antigravity/gemini-3.8-flash-high` (fallback alternatives: `muse/muse-spark-1.3-contributor reasoningEffort=xhigh`, `opencode/opencode/glm-5.3-flash-free variant=high`)
+- jtaroreh workhorse: `antigravity/gemini-3.8-flash thought_level=high` (fallback alternatives: `muse/muse-spark-1.3-contributor reasoningEffort=xhigh`, `opencode/opencode/glm-5.3-flash-free variant=high`)
 - jtaroreh advisor: stamped default `claudeAgent/claude-opus-5-5 effort=xhigh`; fallback `codex-pstack/gpt-6.1-sol reasoningEffort=medium serviceTier=default` when the primary is disabled or unavailable
 - jtaroreh takeover: stamped default `claudeAgent/claude-fable-5-2 effort=xhigh`; fallback `codex-pstack/gpt-6.1-sol reasoningEffort=high serviceTier=default` when the primary is disabled or unavailable
