@@ -2,13 +2,13 @@
   "pstack": {
     "plugins/jstack/skills/poteto-mode/SKILL.md": {
       "kind": "policy",
-      "why": "Carries four rules from Michael Denyer's pstack-claude in T3 wording: load a managed platform's skill before deploying, stop an abandoned agent whose writes could overlap its replacement's with task_cancel and confirm with task_status that it stopped, which Autopilot-full's immediate replacement of a stuck agent overrides, keep a review gate closed while no independent reviewer can run, and keep the todolist in .audit/<task-slug>.todo.md when the session has no task tool.",
+      "why": "Carries four rules from Michael Denyer's pstack-claude in T3 wording: load a managed platform's skill before deploying, stop an abandoned agent whose writes could overlap its replacement's with task_cancel and confirm with task_status that it stopped, which Autopilot-full's immediate replacement of a stuck agent overrides, keep a review gate closed while no independent reviewer can run, and keep the todolist in .audit/<task-slug>.todo.md when the session has no task tool. Adds a Verification section that orders evidence cheapest first, from a run the coordinator reruns itself, through a check seen to fail and a formal check, to one cross-family reviewer for what no run decides and a panel only on request or a contested design, with a diff to a check always reviewed.",
       "since": "2.0.0-rc.2",
       "upstream": "not-proposed"
     },
     "plugins/jstack/skills/poteto-mode/playbooks/feature.md": {
       "kind": "policy",
-      "why": "Points step 4 at the Subagents rule that a file-writing delegate works alone in the delegator's checkout or in its own worktree from HEAD, and carries the rule from Michael Denyer's pstack-claude that the delegator commits what the delegate builds on, names that commit in the brief, and never writes or runs a suite in a worktree a delegate still holds.",
+      "why": "Points step 4 at the Subagents rule that a file-writing delegate works alone in the delegator's checkout or in its own worktree from HEAD, and carries the rule from Michael Denyer's pstack-claude that the delegator commits what the delegate builds on, names that commit in the brief, and never writes or runs a suite in a worktree a delegate still holds. Sends step 4 to arena only when the user asks for a bakeoff or the shape is contested, per the Verification order in poteto-mode's SKILL.md, instead of whenever the implementation admits several valid shapes.",
       "since": "2.0.0-rc.2",
       "upstream": "not-proposed"
     },
