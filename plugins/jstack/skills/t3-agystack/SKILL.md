@@ -5,7 +5,7 @@ description: "T3 adapter for the agystack Antigravity plugin: active only in T3 
 
 # t3-agystack
 
-agystack playbooks run the same in both worlds. What changes under T3 is who owns orchestration and what a child is allowed to do. This skill states that contract. It is installed by the t3-pstack projection beside the agystack skills, and the routing note at the top of every projected SKILL.md points here.
+agystack playbooks run the same in both worlds. What changes under T3 is who owns orchestration and what a child is allowed to do. This skill states that contract. The t3-jstack plugin ships it to every provider. The opt-in agystack projection, `t3-antigravity install`, also copies it into `<profile>/config/skills` of the T3 Antigravity profile beside the agystack skills, and the routing note at the top of every projected SKILL.md points here.
 
 ## Activation
 
