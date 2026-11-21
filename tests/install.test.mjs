@@ -823,6 +823,22 @@ describe("Antigravity", () => {
     });
   });
 
+  test("doctor warns when the profile also holds the agystack projection, and fails nothing", () => {
+    const home = antigravityHome();
+    installAntigravity(home, agy);
+    const manifest = join(home.dir, "config/skills/.t3-agystack-manifest.json");
+    writeJson(manifest, { schema: 1, entries: [] });
+    const checks = doctorAntigravity(home, agy);
+    expect(checks.slice(0, 2).every((c) => c.ok)).toBe(true);
+    expect(checks[2]).toMatchObject({ name: "agystack projection", ok: false, warn: true });
+    expect(checks[2].detail).toContain("unproven");
+    expect(checks[2].fix).toContain(manifest);
+    expect(JSON.parse(readFileSync(manifest, "utf8"))).toEqual({ schema: 1, entries: [] });
+
+    writeJson(join(home.dir, "config/config.json"), { plugins: { "t3-jstack": { enabled: false } } });
+    expect(doctorAntigravity(home, agy).map((c) => c.name)).toEqual(["installed", "enabled"]);
+  });
+
   test("the installer CLI installs into each Antigravity profile, with no claude or codex on PATH", () => {
     const user = tmp();
     const bin = join(user, "bin");
@@ -846,6 +862,7 @@ describe("Antigravity", () => {
     expect(row(run("update")).steps).toEqual([]);
     expect(row(run("doctor")).checks.map((c) => c.name)).toEqual(["installed", "enabled"]);
     expect(existsSync(join(profile, "t3-jstack-models.md"))).toBe(false);
+    expect(existsSync(join(profile, "config/skills"))).toBe(false);
   });
 });
 
