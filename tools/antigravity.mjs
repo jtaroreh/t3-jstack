@@ -4,14 +4,17 @@
 //   install  project the agystack Antigravity plugin into <gemini-home>/skills
 //   doctor   read-only report on the projection and its manifest
 //
-// It writes nothing outside the destination skills directory, and leaves the
-// general installer in tools/install.mjs untouched.
+// <gemini-home> is --gemini-home, else the config directory of the one
+// Antigravity profile T3 keeps, found as tools/install/homes.mjs finds it. It
+// writes nothing outside the destination skills directory, and the general
+// installer in tools/install.mjs never runs it.
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { existsSync } from "node:fs";
 
 import { expandHome } from "./install/common.mjs";
+import { discoverHomes } from "./install/homes.mjs";
 import { ADAPTER_RESOURCE_PATH, MANIFEST_NAME, ProjectionBlocked, buildProjection, doctor, project } from "./install/agystack.mjs";
 
 const USAGE = `usage: node tools/antigravity.mjs install|doctor [--gemini-home DIR] [--agystack-source DIR] [--json]
@@ -19,6 +22,12 @@ const USAGE = `usage: node tools/antigravity.mjs install|doctor [--gemini-home D
 install projects the agystack Antigravity plugin into <gemini-home>/skills as
 flat, manifest-owned skill directories. doctor reports drift, broken links,
 and the state of the cloud bridge (${ADAPTER_RESOURCE_PATH}).
+
+Without --gemini-home, <gemini-home> is <profile>/config for the one
+Antigravity profile T3 keeps under <T3 userdata>/providers/antigravity. With
+no such profile, or more than one, both verbs stop and ask for --gemini-home.
+--agystack-source defaults to ~/.gemini/config/plugins/agystack, or to
+<gemini-home>/plugins/agystack when --gemini-home is given.
 
 Exit codes: 0 success, 1 blocked install or degraded doctor, 2 usage error.
 `;
@@ -67,12 +76,25 @@ function emit(options, payload, human) {
   else process.stdout.write(`${human}\n`);
 }
 
+// A profile counts once T3 has created it, so the projection never creates one.
+function t3GeminiHome(home) {
+  const { homes, settings } = discoverHomes({ env: process.env, home });
+  const profiles = homes.filter((h) => h.harness === "antigravity" && existsSync(h.dir));
+  if (profiles.length === 1) return { geminiHome: join(profiles[0].dir, "config"), from: profiles[0].from.join(", ") };
+  if (!profiles.length) {
+    throw new Error(`no T3 Antigravity profile found from ${settings.path}${settings.error ? ` (${settings.error})` : ""}; start an Antigravity thread in T3 once, or pass --gemini-home DIR`);
+  }
+  throw new Error(`${profiles.length} T3 Antigravity profiles found (${profiles.map((p) => `${join(p.dir, "config")} for ${p.from.join(", ")}`).join("; ")}); pass --gemini-home with the one to use`);
+}
+
 function homes(options) {
   const home = homedir();
-  const geminiHome = resolve(expandHome(options.geminiHome ?? join(home, ".gemini", "config"), home));
+  const userGeminiHome = resolve(expandHome(options.geminiHome ?? join(home, ".gemini", "config"), home));
+  const { geminiHome, from } = options.geminiHome ? { geminiHome: userGeminiHome, from: "--gemini-home" } : t3GeminiHome(home);
   return {
     destSkillsDir: join(geminiHome, "skills"),
-    sourceRoot: resolve(expandHome(options.agystackSource ?? join(geminiHome, "plugins", "agystack"), home)),
+    from,
+    sourceRoot: resolve(expandHome(options.agystackSource ?? join(userGeminiHome, "plugins", "agystack"), home)),
     packageRoot: fileURLToPath(new URL("..", import.meta.url)),
   };
 }
@@ -80,7 +102,14 @@ function homes(options) {
 function main() {
   const options = parseArgs(process.argv.slice(2));
   if (!options.verb) usageError("install or doctor expected");
-  const { destSkillsDir, sourceRoot, packageRoot } = homes(options);
+  let resolved;
+  try {
+    resolved = homes(options);
+  } catch (error) {
+    emit(options, { status: "error", message: error.message }, `antigravity: ${error.message}`);
+    process.exit(1);
+  }
+  const { destSkillsDir, from, sourceRoot, packageRoot } = resolved;
   if (options.verb === "install") {
     const emitBlocked = (payload, human) => {
       emit(options, payload, human);
@@ -108,12 +137,13 @@ function main() {
         adapterResource: result.applied.filter((e) => e.kind === "adapter-resource").length,
         links: result.applied.filter((e) => e.kind === "resource-link").length,
       };
-      const summary = `installed ${build.sourceSkillNames.length} agystack skill${build.sourceSkillNames.length === 1 ? "" : "s"} into ${destSkillsDir} (manifest ${MANIFEST_NAME}: ${build.entries.length} owned entries; this run wrote ${result.applied.length} paths, ${counts.generated} generated)`;
+      const summary = `installed ${build.sourceSkillNames.length} agystack skill${build.sourceSkillNames.length === 1 ? "" : "s"} into ${destSkillsDir}, from ${from} (manifest ${MANIFEST_NAME}: ${build.entries.length} owned entries; this run wrote ${result.applied.length} paths, ${counts.generated} generated)`;
       emit(
         options,
         {
           status: "ok",
           dest: destSkillsDir,
+          from,
           manifest: result.manifestPath,
           skills: build.sourceSkillNames,
           applied: result.applied.map((e) => e.path),
@@ -159,8 +189,9 @@ function main() {
       );
       process.exit(1);
     }
+    report.from = from;
     const lines = [
-      `agystack projection doctor "${sourceRoot}" -> "${destSkillsDir}"`,
+      `agystack projection doctor "${sourceRoot}" -> "${destSkillsDir}" (from ${from})`,
       `  status: ${report.status}`,
       `  source: ${report.source.present ? report.source.skills.join(", ") : "not found"}`,
       `  manifest entries: ${report.manifest?.entries ?? "no manifest"}`,
