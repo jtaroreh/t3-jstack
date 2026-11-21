@@ -30,7 +30,7 @@ The session-start hook tells each new chat when to enter `poteto-mode` on its ow
 
 For a fast workhorse with stronger-model review, invoke `/jtaroreh-mode`. [Jtaroreh mode](plugins/jstack/skills/jtaroreh-mode/SKILL.md) keeps poteto-mode's principles and playbooks. A fast model implements and consults stronger advisors directly. Its optional model-sheet roles are `jtaroreh workhorse`, `jtaroreh advisor`, and `jtaroreh takeover`. Configure them through [setup-jstack](plugins/jstack/skills/setup-jstack/SKILL.md). Existing poteto sheets need no new entries. A parent on another model delegates the bounded task once and integrates its result.
 
-Ordinary implementation receives final review. Consequential decisions receive focused preflight advice. Task notes preserve constraints without a separate state machine. These are agent instructions. The [runtime limits](plugins/jstack/skills/jtaroreh-mode/references/runtime-contract.md) distinguish peer review from host tool enforcement. Automatic session-start routing still enters poteto-mode. Neither mode changes the chat model by loading a skill.
+Ordinary implementation receives final review of the files that no passing check covers. A check covers a file only after it has been seen to fail on a broken variant. Consequential decisions receive focused preflight advice. Task notes preserve constraints without a separate state machine. These are agent instructions. The [runtime limits](plugins/jstack/skills/jtaroreh-mode/references/runtime-contract.md) distinguish peer review from host tool enforcement. Automatic session-start routing still enters poteto-mode. Neither mode changes the chat model by loading a skill.
 
 The plugin carries 69 skill directories, 24 of them `principle-*` leaves, and 4 agents.
 

@@ -67,7 +67,7 @@ arena runners: claudeAgent/claude-opus-5-5 effort=high, codex/gpt-6.2-sol reason
 arena cross-judge pool: codex/gpt-6.2-sol reasoningEffort=high, claudeAgent/claude-opus-5-5 effort=high
 swarm workers: claudeAgent/claude-opus-5-5 effort=high
 interrogate reviewers: claudeAgent/claude-opus-5-5 effort=high, codex/gpt-6.2-sol reasoningEffort=high, antigravity/gemini-3.8-flash thought_level=high
-# jtaroreh workhorse: antigravity/gemini-3.8-flash-high
+# jtaroreh workhorse: antigravity/gemini-3.8-flash thought_level=high
 # jtaroreh advisor: claudeAgent/claude-opus-5-5 effort=xhigh
 # jtaroreh takeover: claudeAgent/claude-fable-5-2 effort=xhigh
 session hook: on

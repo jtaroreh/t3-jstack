@@ -91,6 +91,11 @@ describe("checkSheet against a catalog", () => {
     expect(check(sheet)).toEqual([]);
   });
 
+  test("each optional mode role's default dispatches", () => {
+    const sheet = roles.filter((r) => r.optional).map((r) => `${r.role}: ${defaults[r.tier]}`).join("\n");
+    expect(check(sheet)).toEqual([]);
+  });
+
   test("an unused optional mode needs no provider, but explicit mode entries validate normally", () => {
     expect(check("session hook: on")).toEqual([]);
     expect(check("jtaroreh workhorse: codex/gpt-6.1-sol reasoningEffort=medium")).toEqual([]);
