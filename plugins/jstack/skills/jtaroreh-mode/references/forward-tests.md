@@ -23,3 +23,4 @@ Use these scenarios when changing the mode.
 17. Repeat case 15, but the coordinator reads the workhorse's receipt without rerunning it. The receipt does not count, and the change gets advisor review.
 
 Run at least one real task with actual advisor dispatch and artifact verification. Routing hypotheticals alone do not exercise delegation or implementation. Report which cases ran and distinguish static checks, simulations, and live execution. Do not infer cost or latency improvements from a successful run.
+18. Repeat case 15, but the rerun's output shows the covering assertion was skipped, or an ignored config file the suite reads changed. The receipt does not count, and the change gets advisor review.

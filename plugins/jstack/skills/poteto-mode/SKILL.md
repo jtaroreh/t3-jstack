@@ -86,12 +86,12 @@ For work that spans a handoff, interruption, or repeated verification attempts, 
 
 ## Verification
 
-Work down this order, cheapest evidence first, and go further only for what the earlier steps leave open. A passing check counts only once step 2 has seen it fail.
+Work down this order, cheapest evidence first, and go further only for what the earlier steps leave open.
 
 1. Run it. Run the tests, the type check, and the project's verify skill on the real artifact. Rerun a child's check yourself. A child's summary of it is not the result.
-2. Show the check can fail. Break the code once and see the check catch it, per the "Able to fail" rule in **create-formal-verification-skill**.
+2. Show that each new or materially changed check catches the defect it is meant to detect, per the "Able to fail" rule in **create-formal-verification-skill**. Require the same evidence when a check substitutes for review. Reuse a recorded failure when the check, its inputs, and the behavior it covers still match.
 3. Formally check code that fits, such as concurrency, retries, state machines, and parsers. Use the project's formal-verification skill, or **create-formal-verification-skill** when it has none. Read TLA+ results with **statechart**.
-4. Ask one reviewer from another model family only about what no run decides, which is fit to the intent, design judgment, and prose that drives agent behavior. A reviewer's finding counts only when a run proves it, as **interrogate** requires.
+4. Ask one reviewer from another model family only about what no run decides, which is fit to the intent, design judgment, and prose that drives agent behavior. A claim about observable behavior needs a reproducing run, as **interrogate** requires. A finding about intent, design, or instructions cites the requirement and the passages it rests on and states the concrete consequence.
 5. Run a panel (**interrogate**, **arena**) only when the user asks for one or the design is contested.
 
 A diff that changes a test, a formal model, a verify skill, or CI config always gets step 4, because weakening a check is the cheapest way to pass it.

@@ -95,6 +95,12 @@
       "why": "Writes the T3 model sheet from orchestrator_capabilities targets and checks it with t3-sheet.mjs, in place of Cursor's always-applied .mdc rule built from model slugs. Steps 7 and 8 open the generator's SKILL.md by its path from this file instead of invoking it, since on Claude Code the Skill tool refuses a skill with disable-model-invocation, a conflict Eric Litman's open-pstack recorded in its 0.15.29 sync (#234). Routes Muse-specific setup through the port-owned muse-code adapter before selecting targets.",
       "since": "2.0.0-rc.1",
       "upstream": "not-proposed"
+    },
+    "plugins/jstack/skills/architect/SKILL.md": {
+      "kind": "policy",
+      "why": "Runs arena only when the user asks for a design bakeoff or the design is contested, so a large design that is agreed does not start a panel, matching poteto-mode's Verification step 5.",
+      "since": "2.1.1",
+      "upstream": "not-proposed"
     }
   }
 }
