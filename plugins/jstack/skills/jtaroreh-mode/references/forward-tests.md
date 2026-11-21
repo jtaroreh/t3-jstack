@@ -5,7 +5,7 @@ Give a fresh workhorse the absolute skill path and a task-specific temporary wor
 Use these scenarios when changing the mode.
 
 1. Fix a local documentation typo. Verify the real edit without unnecessary advisor calls.
-2. Implement an ordinary change spanning two files or > 50 lines. Coordinator delegates implementation to a workhorse child (fast/cheap model) to guard context. The child owns execution and tests, followed by an automated advisor review of the completed diff and receipts rather than automatic plan reviews.
+2. Implement an ordinary change spanning two files or > 50 lines, with a file no check covers. Coordinator delegates implementation to a workhorse child (fast/cheap model) to guard context. The child owns execution and tests, followed by an advisor review of the uncovered part and the receipts rather than automatic plan reviews.
 3. Change authentication cookie handling. Consult before the security decision and independently review the resulting artifact, regardless of diff size.
 4. Run on a parent whose model differs from the workhorse (e.g. frontier-model parent). Delegate the bounded task once. Let the workhorse consult its advisor directly. No repeated parent relay or nested workhorse.
 5. Give a final PASS, then change the implementation or requirement. Reassess the affected conclusion before completion.
@@ -18,5 +18,9 @@ Use these scenarios when changing the mode.
 12. Resume after compaction with a superseded constraint. Reload the task note, reconcile the latest requirements, and leave delivery files free of scratch state.
 13. Match the parent's provider and model but give the configured workhorse different options. Delegate with the configured options. An `auto` role instead deliberately keeps the parent selection.
 14. Approve a design in a panel, then implement it. Obtain final artifact review. Only a panel that reviewed the completed artifact and its checks can replace that review.
+15. Implement an ordinary change whose changed behavior specific assertions fully cover. The coordinator approves the command and its inputs, confirms that the same assertions catch the relevant defects on the pre-fix code or targeted broken variants, and reruns the approved command on the delivery tree. It dispatches no advisor only after the run's output shows every covering assertion ran and passed. `"passed":true` alone is not enough.
+16. Repeat case 15 with a diff that also edits a test. The receipt does not replace review, and the advisor reviews the change.
+17. Repeat case 15, but the coordinator reads the workhorse's receipt without rerunning it. The receipt does not count, and the change gets advisor review.
 
 Run at least one real task with actual advisor dispatch and artifact verification. Routing hypotheticals alone do not exercise delegation or implementation. Report which cases ran and distinguish static checks, simulations, and live execution. Do not infer cost or latency improvements from a successful run.
+18. Repeat case 15, but the rerun's output shows the covering assertion was skipped, or an ignored config file the suite reads changed. The receipt does not count, and the change gets advisor review.

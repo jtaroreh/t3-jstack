@@ -18,11 +18,13 @@ Bundled skills live at `../<name>/SKILL.md`. This file owns model routing while 
 - The configured fast/cheap model remains the implementation workhorse. Frontier models (`jtaroreh advisor` and `jtaroreh takeover`) serve exclusively for preflight questions, independent review, and corrective takeovers.
 - Consult before consequential architecture choices, concurrency or security changes, irreversible actions, and high-stakes conclusions. Also consult when the evidence leaves competing explanations or an attempted fix fails. These triggers apply regardless of the workhorse's confidence.
 - Ordinary implementation needs one independent review of the completed change, not an additional mandatory plan review. Trivial formatting and contained mechanical edits use direct verification. File count and line count alone do not create a second review.
+- A passing verification receipt replaces the advisor's final review only of the changed behavior that a specific assertion or property verifies. The coordinator owns the task note and approves the receipt's command and its verification inputs. The receipt comes from [verify-task.mjs](../poteto-mode/scripts/verify-task.mjs) `run`, which runs the note's stored command and records each attempt's outcome with a fingerprint of HEAD, the tracked diff, and untracked files that Git does not ignore. It does not record which assertions ran, and it does not see ignored files. So the coordinator confirms that the same assertion fails for the relevant defect on the pre-fix code or a targeted broken variant, then reruns the command itself with `verify-task.mjs run --note <note>` on the exact delivery tree and confirms from the output that the assertion ran, was not skipped, and passed. The workhorse leaves one attempt in `--limit` for that rerun. The advisor reviews every change no such assertion covers.
+- A receipt never replaces review of a change to a check itself or to its inputs, such as a test, a formal model, a verify skill, CI config, test selection, or ignored configuration the check reads. It also never replaces review of a change to agent behavior or of work that meets a consult trigger above.
 - Give the advisor the question, relevant raw requirements, actual source or diff including new files, and check results. Ask for an actionable decision. Do not send an entire transcript by default.
 - A review covers the artifact or action the advisor actually inspected. A changed implementation or requirement needs review of the affected conclusion. Recording an already-satisfied constraint does not revoke a PASS.
-- A failed or unavailable required review stays blocked. Tests and the workhorse's confidence cannot replace it. Report partial work honestly.
+- A failed or unavailable required review stays blocked. A review the receipt rule leaves in place is required, and neither tests nor the workhorse's confidence replaces it. Report partial work honestly.
 - Verify on the real artifact with the project's control skill or actual commands. Use [benchmark-checklist](../benchmark-checklist/SKILL.md) before reporting measured performance. Cost and speed improvements remain unproven until measured.
-- Use [how](../how/SKILL.md) for grounding, [technical-writing](../technical-writing/SKILL.md) for documentation, and [unslop](../unslop/SKILL.md) for prose. Use [interrogate](../interrogate/SKILL.md) for requested adversarial panels or a contested design. A panel that inspected the completed artifact and its verification evidence replaces the ordinary final advisor review. A design panel does not.
+- Use [how](../how/SKILL.md) for grounding, [technical-writing](../technical-writing/SKILL.md) for documentation, and [unslop](../unslop/SKILL.md) for prose. Use [interrogate](../interrogate/SKILL.md) for requested adversarial panels or a contested design. A panel replaces the final advisor review only for the behavior its runs verified. Intent, design, and instruction questions in the completed change still get a focused advisor review under poteto-mode's [Verification](../poteto-mode/SKILL.md#verification) step 4 evidence rules, whether or not the panel raised them, because interrogate keeps only findings a run proves. A design panel replaces no final review.
 - Full plans, designs, and long reports go in a persistent artifact file. Link it in chat using an absolute path. Keep chat to a short summary, material decisions or blockers, and the next action. While this mode is active, this rule overrides bundled guidance to present the full deliverable inline, unless the user explicitly requests it.
 
 ## Principles
@@ -65,7 +67,7 @@ Writing delegates use an isolated worktree from the intended committed base (`is
 
 Use the `jtaroreh advisor` role for focused preflight questions and independent final review. The advisor and takeover roles resolve dynamically from the machine's model sheet (`~/.config/t3-jstack/models.md`, falling back to the `t3-pstack` paths an older install wrote) or the `## Models` defaults below. When the primary advisor or takeover model is disabled or unavailable, use the listed fallback. Advisors inspect only and spawn nothing. Read [the advisor brief](references/advisor.md) when consulting.
 
-After the child workhorse completes non-trivial edits and verifies them, the coordinator automatically dispatches `jtaroreh advisor` via `delegate_task` to inspect the scoped diff and verification receipts. The coordinator handles the verdict:
+After the child workhorse completes non-trivial edits and verifies them, the coordinator reruns each receipt's command and dispatches `jtaroreh advisor` via `delegate_task` to inspect the part of the scoped diff no receipt covers, with the receipts. The coordinator handles the verdict:
 - **PASS**: Proceed to delivery, PR, or final report.
 - **REVISE**: The workhorse makes one correction and verifies it. A second `REVISE`, even for a different objection, escalates to `jtaroreh takeover`.
 - **TAKEOVER**: Escalate immediately to `jtaroreh takeover` for the difficult section.
@@ -80,14 +82,14 @@ Use [poteto-mode's reply rules](../poteto-mode/SKILL.md#writing-the-reply). Lead
 
 ## Comments
 
-Use [poteto-mode's comment rules](../poteto-mode/SKILL.md#comments). Keep only comments that explain a non-obvious reason the code cannot express.
+Run [no-comments](../no-comments/SKILL.md) before review. Keep only comments that explain a non-obvious reason the code cannot express.
 
 ## Playbooks
 
 Match the task using [poteto-mode's playbook index](../poteto-mode/SKILL.md#playbooks), then open the named file under `../poteto-mode/playbooks/`. Keep its plan, evidence, verification, and delivery requirements. Apply these routing changes rather than importing a second implementation hierarchy.
 
 - Investigation, bug fix, runtime forensics, and trace forensics. The workhorse gathers the evidence. For bug fixes, trivial edits run in-thread, while non-trivial fixes (> 50 lines or multi-file edits) delegate to `jtaroreh workhorse`. Consult on an unresolved interpretation or a consequential recommendation.
-- Feature and refactoring. Keep grounding, the throughput checkpoint, verification, and PR preparation. Mandate `jtaroreh workhorse` child delegation for non-trivial edits (> 50 lines on a single file, multi-file modifications) to guard the coordinator context window. Follow completed changes with automated advisor review. Use a focused advisor preflight when a consequential design choice needs judgment. Run an architecture panel when the user requests one or the design remains contested.
+- Feature and refactoring. Keep grounding, the throughput checkpoint, verification, and PR preparation. Mandate `jtaroreh workhorse` child delegation for non-trivial edits (> 50 lines on a single file, multi-file modifications) to guard the coordinator context window. Follow completed changes with advisor review of what no receipt covers. Use a focused advisor preflight when a consequential design choice needs judgment. Run an architecture panel when the user requests one or the design remains contested.
 - Perf issue and hillclimb. The workhorse runs the experiment. The advisor challenges the proposed explanation and evidence before accepting a measured result.
 - Prototype, visual parity, and skill authoring. The workhorse builds or writes. Check the actual artifact. Apply ordinary final review when the change is nontrivial. Skill-authoring changes that affect agent behavior always get final advisor review regardless of diff size.
 - Babysit, shipping, and autonomous programs. Keep their independent gates and watcher behavior. Their stronger review requirements take precedence. Do not add a duplicate advisor pass over an already-reviewed unchanged artifact.
@@ -100,14 +102,14 @@ This is a peer-review workflow, not a host tool interceptor. It cannot enforce t
 
 Role defaults on T3, stamped from `plugins/jstack/models.json`. A role line in the model sheet overrides each one. The sheet is `~/.config/t3-jstack/models.md` (`$XDG_CONFIG_HOME/t3-jstack/models.md` when that is set), one per machine, and `/setup-jstack` writes it. When it is missing, read `t3-jstack-models.md` in the host's config directory (`$CLAUDE_CONFIG_DIR` or `~/.claude` on Claude Code, `$CODEX_HOME` or `~/.codex` on Codex), falling back to the `t3-pstack` machine sheet and home sheet an older install wrote. An entry is `<providerInstanceId>/<modelId>` plus `<optionId>=<value>` pairs, and it maps onto `delegate_task`'s `target`, with the provider instance as `providerInstanceId`, the model as `model`, and the pairs as `options`. It splits at its first `/`, so a model ID with its own `/`, such as OpenCode's `<provider>/<model>`, is written whole after it. Option IDs differ per provider, so take them from `orchestrator_capabilities`. `inherit-parent` or `auto` omits `target`.
 
-- jtaroreh workhorse: `antigravity/gemini-3.8-flash-high`
+- jtaroreh workhorse: `antigravity/gemini-3.8-flash thought_level=high`
 - jtaroreh advisor: `claudeAgent/claude-opus-5-5 effort=xhigh`
-- jtaroreh takeover: `claudeAgent/claude-fable-5-1 effort=xhigh`
+- jtaroreh takeover: `claudeAgent/claude-fable-5-2 effort=xhigh`
 
 ## Provider alternatives
 
 Edit this section and the `## Models` list above to change models; the body of this skill intentionally names no model strings. The workhorse is any fast/cheap model. Other providers with the same roles are fallbacks, not competing defaults; the `## Models` list above stays authoritative and a model-sheet line overrides it.
 
-- jtaroreh workhorse: `antigravity/gemini-3.8-flash-high` (fallback alternatives: `muse/muse-spark-1.3-contributor reasoningEffort=xhigh`, `opencode/opencode/glm-5.3-flash-free variant=high`)
+- jtaroreh workhorse: `antigravity/gemini-3.8-flash thought_level=high` (fallback alternatives: `muse/muse-spark-1.3-contributor reasoningEffort=xhigh`, `opencode/opencode/glm-5.3-flash-free variant=high`)
 - jtaroreh advisor: stamped default `claudeAgent/claude-opus-5-5 effort=xhigh`; fallback `codex-pstack/gpt-6.1-sol reasoningEffort=medium serviceTier=default` when the primary is disabled or unavailable
-- jtaroreh takeover: stamped default `claudeAgent/claude-fable-5-1 effort=xhigh`; fallback `codex-pstack/gpt-6.1-sol reasoningEffort=high serviceTier=default` when the primary is disabled or unavailable
+- jtaroreh takeover: stamped default `claudeAgent/claude-fable-5-2 effort=xhigh`; fallback `codex-pstack/gpt-6.1-sol reasoningEffort=high serviceTier=default` when the primary is disabled or unavailable

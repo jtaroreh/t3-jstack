@@ -16,13 +16,26 @@ const mandate = readFileSync(join(pluginRoot, "hooks/session-start-context.md"),
 const codexManifest = JSON.parse(readFileSync(join(pluginRoot, ".codex-plugin/plugin.json"), "utf8"));
 
 // Claude Code loads hooks/hooks.json by convention; Codex loads the file its
-// manifest names.
+// manifest names; Antigravity loads hooks.json at the plugin root.
 const sessionStart = Object.fromEntries(
   Object.entries({ claude: "hooks/hooks.json", codex: codexManifest.hooks }).map(([runtime, file]) => [
     runtime,
     JSON.parse(readFileSync(join(pluginRoot, file), "utf8")).hooks.SessionStart[0],
   ]),
 );
+const antigravityHooks = JSON.parse(readFileSync(join(pluginRoot, "hooks.json"), "utf8"))["t3-jstack"].SessionStart;
+const commands = {
+  claude: sessionStart.claude.hooks[0].command,
+  codex: sessionStart.codex.hooks[0].command,
+  antigravity: antigravityHooks[0].command,
+};
+
+// Antigravity replies in JSON and injects each step's text as a system message.
+const decodeAntigravity = (out) => {
+  const steps = JSON.parse(out).injectSteps;
+  expect(steps).toHaveLength(1);
+  return steps[0].systemMessage.systemMessage;
+};
 
 // CODEX_HOME and CLAUDE_CONFIG_DIR are only present when the user has
 // relocated that runtime's directory. PLUGIN_ROOT is a generic name any shell
@@ -41,18 +54,29 @@ const runtimes = {
     sheetDir: "codex-home",
     env: (sheetRoot) => ({ CODEX_HOME: sheetRoot }),
   },
+  // Antigravity runs the command in the plugin root and exports PLUGIN_ROOT.
+  // It has no home sheet, so its cases use the machine sheet.
+  antigravity: {
+    hooks: "antigravity",
+    sheetDir: ".config/t3-jstack",
+    sheetFile: "models.md",
+    env: () => ({ PLUGIN_ROOT: pluginRoot }),
+    reply: decodeAntigravity,
+    silent: "{}\n",
+  },
 };
 
-function runHook(runtime, sheet, command = sessionStart[runtimes[runtime].hooks].hooks[0].command) {
+function runHook(runtime, sheet, command = commands[runtimes[runtime].hooks]) {
   const home = mkdtempSync(join(tmpdir(), "pstack-hook-"));
-  const { sheetDir, env } = runtimes[runtime];
+  const { sheetDir, sheetFile = "t3-jstack-models.md", env } = runtimes[runtime];
   const sheetRoot = join(home, sheetDir);
   if (sheet !== null) {
-    mkdirSync(sheetRoot);
-    writeSheet(join(sheetRoot, "t3-jstack-models.md"), sheet);
+    mkdirSync(sheetRoot, { recursive: true });
+    writeSheet(join(sheetRoot, sheetFile), sheet);
   }
   try {
     const r = spawnSync("sh", ["-c", command], {
+      cwd: pluginRoot,
       env: { PATH: process.env.PATH, HOME: home, CLAUDE_PLUGIN_ROOT: pluginRoot, ...env(sheetRoot) },
       encoding: "utf8",
     });
@@ -83,13 +107,14 @@ describe("SessionStart hook", () => {
       const r = runHook("claude", null, `"\${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh" ${arg}`);
       expect(r.status).not.toBe(0);
       expect(r.out).toBe("");
-      expect(r.err.trimEnd().split("\n")).toEqual([`session-start.sh: unknown runtime '${arg}' (expected claude or codex)`]);
+      expect(r.err.trimEnd().split("\n")).toEqual([`session-start.sh: unknown runtime '${arg}' (expected claude, codex, or antigravity)`]);
     });
   }
 
   for (const runtime of Object.keys(runtimes)) {
-    const wrap = (out) => out;
-    const expected = (off) => (off ? "" : mandate);
+    const { reply = (out) => out, silent = "" } = runtimes[runtime];
+    const wrap = (out) => (out === silent ? out : reply(out));
+    const expected = (off) => (off ? silent : mandate);
     describe(runtime, () => {
       test("injects the mandate when no sheet exists", () => {
         const r = runHook(runtime, null);
@@ -120,6 +145,11 @@ describe("the machine sheet", () => {
       encoding: "utf8",
     }).stdout;
 
+  test("Antigravity loads its one SessionStart hook with no timeout of its own", () => {
+    expect(Object.keys(JSON.parse(readFileSync(join(pluginRoot, "hooks.json"), "utf8")))).toEqual(["t3-jstack"]);
+    expect(antigravityHooks).toEqual([{ type: "command", command: "sh ./hooks/session-start.sh antigravity" }]);
+  });
+
   test.each(["claude", "codex"])("decides over the %s home sheet", (runtime) => {
     const home = mkdtempSync(join(tmpdir(), "pstack-hook-"));
     try {
@@ -132,6 +162,24 @@ describe("the machine sheet", () => {
       writeFileSync(machineSheet, "session hook: on\n");
       writeFileSync(join(home, `.${runtime}`, "t3-jstack-models.md"), "session hook: off\n");
       expect(run(runtime, home)).toBe(mandate);
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  test("moves with XDG_CONFIG_HOME on antigravity", () => {
+    const home = mkdtempSync(join(tmpdir(), "pstack-hook-"));
+    const run = (env = {}) =>
+      spawnSync("sh", ["-c", commands.antigravity], {
+        cwd: pluginRoot,
+        env: { PATH: process.env.PATH, HOME: home, PLUGIN_ROOT: pluginRoot, ...env },
+        encoding: "utf8",
+      }).stdout;
+    try {
+      mkdirSync(join(home, "xdg/t3-pstack"), { recursive: true });
+      writeFileSync(join(home, "xdg/t3-pstack/models.md"), "session hook: off\n");
+      expect(decodeAntigravity(run())).toBe(mandate);
+      expect(run({ XDG_CONFIG_HOME: join(home, "xdg") })).toBe("{}\n");
     } finally {
       rmSync(home, { recursive: true, force: true });
     }

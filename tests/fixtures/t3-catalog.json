@@ -12,6 +12,12 @@
             { "id": "reasoningEffort", "type": "select", "options": [{ "id": "low" }, { "id": "medium" }, { "id": "high" }, { "id": "xhigh" }, { "id": "max" }, { "id": "ultra" }] },
             { "id": "serviceTier", "type": "select", "options": [{ "id": "default" }, { "id": "priority" }] }
           ]
+        },
+        {
+          "id": "gpt-6.2-sol",
+          "options": [
+            { "id": "reasoningEffort", "type": "select", "options": [{ "id": "low" }, { "id": "medium" }, { "id": "high" }, { "id": "xhigh" }, { "id": "max" }, { "id": "ultra" }] }
+          ]
         }
       ],
       "canRunChildTask": true,
@@ -43,10 +49,20 @@
           ]
         },
         {
-          "id": "claude-fable-5-1",
-          "options": [{ "id": "effort", "type": "select", "options": [{ "id": "low" }, { "id": "medium" }, { "id": "high" }, { "id": "xhigh" }, { "id": "max" }] }]
+          "id": "claude-fable-5-2",
+          "options": [{ "id": "effort", "values": ["low", "medium", "high", "xhigh", "max"] }]
         },
         { "id": "claude-haiku-4-5", "options": [{ "id": "thinking", "type": "boolean" }] }
+      ],
+      "canRunChildTask": true,
+      "canRunCrossProviderChildTask": true,
+      "constraints": []
+    },
+    {
+      "providerInstanceId": "antigravity",
+      "driverKind": "antigravity",
+      "models": [
+        { "id": "gemini-3.8-flash", "options": [{ "id": "thought_level", "values": ["low", "medium", "high"] }] }
       ],
       "canRunChildTask": true,
       "canRunCrossProviderChildTask": true,

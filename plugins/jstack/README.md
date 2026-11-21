@@ -1,6 +1,6 @@
 # t3-jstack
 
-Lauren Tan's [pstack](https://github.com/cursor/plugins/tree/main/pstack) for T3 Code: rigorous agent workflows whose subagents, panels, schedules, and PR watches dispatch through T3's orchestration, so a panel can mix Claude, GPT, and Grok.
+Lauren Tan's [pstack](https://github.com/cursor/plugins/tree/main/pstack) for T3 Code: rigorous agent workflows whose subagents, panels, schedules, and PR watches dispatch through T3's orchestration, so a panel can mix Claude, GPT, and Gemini.
 
 Tell `poteto-mode` your goal and it runs the workflow that fits: reproduce and root-cause a bug, sketch a design with `architect`, race candidates in `arena`, review a diff with `interrogate`, cut prose with `unslop`. It keeps code concise, simple, and verified, and it reports what it checked.
 
@@ -9,7 +9,7 @@ Tell `poteto-mode` your goal and it runs the workflow that fits: reproduce and r
 - Skills: upstream's skill text, with its Cursor mechanics rewritten for T3. Each appears as `/t3-jstack:<name>`.
 - Agents: `poteto-agent`, `comment-sicko`, and the two thermo-nuclear reviewers, each read by path in a `delegate_task` brief.
 - A session-start hook that tells each chat when to enter `poteto-mode`, unless your model sheet turns it off.
-- Local scripts for watching pull requests, orchestrating multi-phase plans, checking plans, and auditing worktrees.
+- Local scripts for watching pull requests, checking plans, and auditing worktrees.
 
 ## Data handling
 

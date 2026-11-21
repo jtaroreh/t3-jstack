@@ -20,7 +20,7 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { applyRegions, deriveT3, fenceUnder, section, tableRows, t3Regions } from "../tools/derive-t3.mjs";
+import { applyRegions, deriveT3, fenceUnder, section, t3Regions } from "../tools/derive-t3.mjs";
 import {
   apply,
   changes,
@@ -63,34 +63,45 @@ describe("locators", () => {
     expect(spanned(fenceUnder("Write", "markdown"), doc)).toBeNull();
     expect(spanned(fenceUnder("Write the sheet", "markdown"), unclosed)).toBeNull();
   });
-
-  test("tableRows spans the consecutive rows with the prefix after the separator", () => {
-    const doc = lines("| Subagent | Default model |\n| --- | --- |\n| Reviewer A | x |\n| Reviewer B | y |\n\ntext");
-    expect(spanned(tableRows("| Subagent | Default model |", "| Reviewer "), doc)).toEqual(["| Reviewer A | x |", "| Reviewer B | y |"]);
-    expect(spanned(tableRows("| Other |", "|"), doc)).toBeNull();
-  });
 });
 
 describe("regions", () => {
   test("every skill a role names gets that role's tier default stamped in its Models section", () => {
-    const marked = { ...models, tiers: { default: "x/marker-default", strongest: "x/marker-strongest", workhorse: "x/marker-workhorse", panel: ["a/claude-p", "b/gpt-p"] } };
+    const marked = {
+      ...models,
+      tiers: {
+        default: "x/marker-default",
+        fast: "x/marker-fast",
+        strongest: "x/marker-strongest",
+        workhorse: "x/marker-workhorse",
+        panel: ["a/claude-p", "b/gpt-p"],
+        judges: ["c/claude-j", "d/gemini-j"],
+      },
+    };
     for (const skill of new Set(models.roles.map((r) => r.skill))) {
       const file = `plugins/jstack/skills/${skill}/SKILL.md`;
       const stamped = applyRegions(file, readFileSync(join(repoRoot, file), "utf8"), marked, { strict: true });
       for (const role of models.roles.filter((r) => r.skill === skill)) {
-        const expected = { default: "`x/marker-default`", strongest: "`x/marker-strongest`", workhorse: "`x/marker-workhorse`", panel: "`a/claude-p`, `b/gpt-p`" }[role.tier];
+        const expected = {
+          default: "`x/marker-default`",
+          fast: "`x/marker-fast`",
+          strongest: "`x/marker-strongest`",
+          workhorse: "`x/marker-workhorse`",
+          panel: "`a/claude-p`, `b/gpt-p`",
+          judges: "`c/claude-j`, `d/gemini-j`",
+        }[role.tier];
         expect(stamped).toContain(`- ${role.role}: ${expected}`);
       }
     }
   });
 
   test("applyRegions stamps in place and is idempotent", () => {
-    const file = "plugins/jstack/skills/how/SKILL.md";
-    const text = "# how\n\n## Models\n\nstale\n\n## After\nkeep\n";
+    const file = "plugins/jstack/skills/swarm/SKILL.md";
+    const text = "# swarm\n\n## Models\n\nstale\n\n## After\nkeep\n";
     const once = applyRegions(file, text, models, { strict: true });
     expect(once).not.toContain("stale");
     expect(once).toContain("## After\nkeep\n");
-    expect(once).toContain("- how explorer: `claudeAgent/claude-opus-5-5 effort=xhigh`");
+    expect(once).toContain("- swarm workers: `claudeAgent/claude-opus-5-5 effort=high`");
     expect(applyRegions(file, once, models, { strict: true })).toBe(once);
   });
 
@@ -100,14 +111,6 @@ describe("regions", () => {
       "plugins/jstack/skills/setup-jstack/SKILL.md: no anchor for the sheet block to stamp",
     );
     expect(applyRegions("plugins/jstack/skills/setup-jstack/SKILL.md", text, models)).toBe(text);
-  });
-
-  test("interrogate's reviewer table gets one row per panel entry", () => {
-    const text = "| Subagent | Default model |\n| --- | --- |\n| Reviewer A | `old` |\n";
-    const stamped = applyRegions("plugins/jstack/skills/interrogate/SKILL.md", text, models);
-    expect(stamped).toContain(
-      "| Reviewer A | `claudeAgent/claude-opus-5-5 effort=xhigh` |\n| Reviewer B | `codex/gpt-6.1-sol reasoningEffort=xhigh` |\n| Reviewer C | `grok/grok-4.7 reasoningEffort=xhigh` |",
-    );
   });
 
   test("applyRegions leaves a file no region names untouched", () => {
@@ -190,18 +193,19 @@ describe("deriveT3", () => {
   });
 
   test("appends and stamps a Models section when upstream has none, naming the sheet and the entry grammar", () => {
-    const out = deriveT3("plugins/jstack/skills/how/SKILL.md", front(""), models);
+    const out = deriveT3("plugins/jstack/skills/swarm/SKILL.md", front(""), models);
     expect(out).toContain("body\n\n## Models\n\nRole defaults on T3, stamped from `plugins/jstack/models.json`.");
     expect(out).toContain("`t3-jstack-models.md`");
     expect(out).toContain("`t3-pstack`");
     expect(out).toContain("It splits at its first `/`");
-    expect(out.endsWith("- how explainer: `claudeAgent/claude-opus-5-5 effort=xhigh`\n")).toBe(true);
-    expect(deriveT3("plugins/jstack/skills/how/SKILL.md", out, models)).toBe(out);
+    expect(out.endsWith("- swarm workers: `claudeAgent/claude-opus-5-5 effort=high`\n")).toBe(true);
+    expect(deriveT3("plugins/jstack/skills/swarm/SKILL.md", out, models)).toBe(out);
   });
 
   test("names the alias a released sheet may still use", () => {
-    const out = deriveT3("plugins/jstack/skills/poteto-mode/SKILL.md", front("", "poteto-mode"), models);
-    expect(out).toContain("- hardest tasks: `claudeAgent/claude-fable-5-1 effort=xhigh` (a `strongest judgment` line counts as this role)");
+    const aliased = { ...models, roles: models.roles.map((r) => (r.role === "bug-fix" ? { ...r, alias: "bugfix" } : r)) };
+    const out = deriveT3("plugins/jstack/skills/poteto-mode/SKILL.md", front("", "poteto-mode"), aliased);
+    expect(out).toContain(`- bug-fix: \`${models.tiers.default}\` (a \`bugfix\` line counts as this role)`);
   });
 
   test("a file no region names passes through", () => {
@@ -293,13 +297,13 @@ describe("plan, changes, apply", () => {
 
   test("a hand edit to a stamped Models line or to the sheet block is restored", () => {
     const root = repoCopy();
-    const how = "plugins/jstack/skills/how/SKILL.md";
+    const swarm = "plugins/jstack/skills/swarm/SKILL.md";
     const setup = "plugins/jstack/skills/setup-jstack/SKILL.md";
     const text = (rel) => readFileSync(join(root, rel), "utf8");
-    writeFileSync(join(root, how), text(how).replace(/^- how explorer: .*$/m, "- how explorer: stale"));
+    writeFileSync(join(root, swarm), text(swarm).replace(/^- swarm workers: .*$/m, "- swarm workers: stale"));
     writeFileSync(join(root, setup), text(setup).replace(/^bug-fix: .*$/m, "bug-fix: stale"));
     const { files } = plan(root);
-    for (const rel of [how, setup]) expect(files[rel]).toBe(readFileSync(join(repoRoot, rel), "utf8"));
+    for (const rel of [swarm, setup]) expect(files[rel]).toBe(readFileSync(join(repoRoot, rel), "utf8"));
   });
 
   test("apply rewrites only the files whose bytes differ", () => {
