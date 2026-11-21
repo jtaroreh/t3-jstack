@@ -55,7 +55,15 @@ export function installAntigravity(home, { pluginRoot, version, skills }) {
 // one the manifest records at its current bytes, or one carrying the whole
 // routing note where the projection inserts it, at a path the manifest lists
 // when a manifest is readable.
-const isFile = (path) => statSync(path, { throwIfNoEntry: false })?.isFile() ?? false;
+// A stray file in a skills folder, such as macOS's .DS_Store, makes
+// `<it>/SKILL.md` an ENOTDIR path rather than a missing one.
+const isFile = (path) => {
+  try {
+    return statSync(path, { throwIfNoEntry: false })?.isFile() ?? false;
+  } catch {
+    return false;
+  }
+};
 function ownedSkills(skillsDir) {
   try {
     const { entries } = JSON.parse(readFileSync(join(skillsDir, MANIFEST_NAME), "utf8"));

@@ -825,6 +825,16 @@ describe("Antigravity", () => {
     });
   });
 
+  test("doctor and a rerun survive stray files beside the skills, such as macOS's .DS_Store", () => {
+    const home = antigravityHome();
+    installAntigravity(home, agy);
+    writeFileSync(join(home.dir, "config/plugins/t3-jstack/skills/.DS_Store"), "Finder metadata");
+    mkdirSync(join(home.dir, "config/skills"), { recursive: true });
+    writeFileSync(join(home.dir, "config/skills/.DS_Store"), "Finder metadata");
+    expect(doctorAntigravity(home, agy).map((c) => c.name)).toEqual(["installed", "enabled"]);
+    expect(doctorAntigravity(home, agy)[1].ok).toBe(true);
+  });
+
   test("doctor warns when the profile also holds projected skills the plugin ships, and fails nothing", () => {
     const home = antigravityHome();
     installAntigravity(home, agy);
