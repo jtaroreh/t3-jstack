@@ -12,6 +12,12 @@
             { "id": "reasoningEffort", "type": "select", "options": [{ "id": "low" }, { "id": "medium" }, { "id": "high" }, { "id": "xhigh" }, { "id": "max" }, { "id": "ultra" }] },
             { "id": "serviceTier", "type": "select", "options": [{ "id": "default" }, { "id": "priority" }] }
           ]
+        },
+        {
+          "id": "gpt-6.2-sol",
+          "options": [
+            { "id": "reasoningEffort", "type": "select", "options": [{ "id": "low" }, { "id": "medium" }, { "id": "high" }, { "id": "xhigh" }, { "id": "max" }, { "id": "ultra" }] }
+          ]
         }
       ],
       "canRunChildTask": true,
@@ -44,11 +50,7 @@
         },
         {
           "id": "claude-fable-5-2",
-          "options": [{ "id": "effort", "values": ["low", "medium", "high", "xhigh", "max", "ultrathink"] }]
-        },
-        {
-          "id": "claude-fable-5-1",
-          "options": [{ "id": "effort", "type": "select", "options": [{ "id": "low" }, { "id": "medium" }, { "id": "high" }, { "id": "xhigh" }, { "id": "max" }] }]
+          "options": [{ "id": "effort", "values": ["low", "medium", "high", "xhigh", "max"] }]
         },
         { "id": "claude-haiku-4-5", "options": [{ "id": "thinking", "type": "boolean" }] }
       ],
@@ -60,8 +62,7 @@
       "providerInstanceId": "antigravity",
       "driverKind": "antigravity",
       "models": [
-        { "id": "gemini-4-neon", "options": [{ "id": "thought_level", "values": ["low", "medium", "high", "xhigh"] }] },
-        { "id": "gemini-4-carbon", "options": [{ "id": "thought_level", "values": ["low", "medium", "high", "xhigh"] }] }
+        { "id": "gemini-3.8-flash", "options": [{ "id": "thought_level", "values": ["low", "medium", "high"] }] }
       ],
       "canRunChildTask": true,
       "canRunCrossProviderChildTask": true,

@@ -102,7 +102,7 @@ Role defaults on T3, stamped from `plugins/jstack/models.json`. A role line in t
 
 - jtaroreh workhorse: `antigravity/gemini-3.8-flash-high`
 - jtaroreh advisor: `claudeAgent/claude-opus-5-5 effort=xhigh`
-- jtaroreh takeover: `claudeAgent/claude-fable-5-1 effort=xhigh`
+- jtaroreh takeover: `claudeAgent/claude-fable-5-2 effort=xhigh`
 
 ## Provider alternatives
 
@@ -110,4 +110,4 @@ Edit this section and the `## Models` list above to change models; the body of t
 
 - jtaroreh workhorse: `antigravity/gemini-3.8-flash-high` (fallback alternatives: `muse/muse-spark-1.3-contributor reasoningEffort=xhigh`, `opencode/opencode/glm-5.3-flash-free variant=high`)
 - jtaroreh advisor: stamped default `claudeAgent/claude-opus-5-5 effort=xhigh`; fallback `codex-pstack/gpt-6.1-sol reasoningEffort=medium serviceTier=default` when the primary is disabled or unavailable
-- jtaroreh takeover: stamped default `claudeAgent/claude-fable-5-1 effort=xhigh`; fallback `codex-pstack/gpt-6.1-sol reasoningEffort=high serviceTier=default` when the primary is disabled or unavailable
+- jtaroreh takeover: stamped default `claudeAgent/claude-fable-5-2 effort=xhigh`; fallback `codex-pstack/gpt-6.1-sol reasoningEffort=high serviceTier=default` when the primary is disabled or unavailable

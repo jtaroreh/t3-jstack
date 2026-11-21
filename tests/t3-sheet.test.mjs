@@ -136,11 +136,12 @@ describe("checkSheet against a catalog", () => {
 
   test("a catalog that lists each option's values as a plain array, as orchestrator_capabilities returns, checks values", () => {
     // A copy of a live orchestrator_capabilities result, trimmed to four
-    // providers. Its grok instance is disabled, so only the tier defaults that
-    // name Grok fail; the Opus and GPT defaults pass.
+    // providers. It lists no antigravity instance, so only the tier defaults
+    // that name it fail; the Opus and GPT defaults pass.
     const values = JSON.parse(readFileSync(join(root, "tests/fixtures/t3-catalog-values.json"), "utf8"));
     const problems = (lines) => check(lines.join("\n"), values);
-    const missingDefault = (p) => p.includes('(no line, tier default): grok/grok-4.7: "grok" cannot run child tasks (Provider instance is disabled.)');
+    const missingDefault = (p) =>
+      p.includes('(no line, tier default): antigravity/gemini-3.8-flash: no provider instance "antigravity" in this T3');
     const valid = [
       "bug-fix: claudeAgent/claude-opus-5-5 effort=high fastMode=true",
       "feature, refactoring: codex/gpt-6.1-sol reasoningEffort=xhigh serviceTier=priority",
@@ -154,7 +155,7 @@ describe("checkSheet against a catalog", () => {
       "judgment and prose: grok/grok-4.7 reasoningEffort=high",
     ];
     expect(problems(invalid).filter((p) => !missingDefault(p))).toEqual([
-      "bug-fix: claudeAgent/claude-opus-5-5: effort=extreme is not one of low, medium, high, xhigh, max, ultracode, ultrathink",
+      "bug-fix: claudeAgent/claude-opus-5-5: effort=extreme is not one of low, medium, high, xhigh, max",
       "hillclimb: claudeAgent/claude-opus-5-5: fastMode=yes is not one of false, true",
       'judgment and prose: grok/grok-4.7: "grok" cannot run child tasks (Provider instance is disabled.)',
     ]);
@@ -170,15 +171,18 @@ describe("checkSheet against a catalog", () => {
     }
   });
 
-  test("a role with no line is checked on its tier default, as on a machine without Grok", () => {
-    const noGrok = structuredClone(catalog);
-    noGrok.providers = noGrok.providers.filter((p) => p.providerInstanceId !== "grok");
-    const panelRoles = roles.filter((r) => Array.isArray(defaults[r.tier])).map((r) => r.role);
-    expect(check("session hook: on", noGrok)).toEqual(
-      panelRoles.map((role) => `${role} (no line, tier default): grok/grok-4.7: no provider instance "grok" in this T3`),
+  test("a role with no line is checked on its tier default, as on a machine without Antigravity", () => {
+    const noGemini = structuredClone(catalog);
+    noGemini.providers = noGemini.providers.filter((p) => p.providerInstanceId !== "antigravity");
+    const geminiRoles = roles.filter((r) => !r.optional && [defaults[r.tier]].flat().some((e) => e.startsWith("antigravity/"))).map((r) => r.role);
+    expect(geminiRoles).toEqual(["arena runners", "interrogate reviewers"]);
+    expect(check("session hook: on", noGemini)).toEqual(
+      geminiRoles.map(
+        (role) => `${role} (no line, tier default): antigravity/gemini-3.8-flash: no provider instance "antigravity" in this T3`,
+      ),
     );
-    const lines = panelRoles.map((role) => `${role}: claudeAgent/claude-opus-5-5, codex/gpt-6.1-sol`).join("\n");
-    expect(check(lines, noGrok)).toEqual([]);
+    const lines = geminiRoles.map((role) => `${role}: claudeAgent/claude-opus-5-5, codex/gpt-6.2-sol`).join("\n");
+    expect(check(lines, noGemini)).toEqual([]);
   });
 
   test("a panel on one family fails, whatever providers serve it", () => {
@@ -193,7 +197,7 @@ describe("checkSheet against a catalog", () => {
     expect(check(`${PANEL}: inherit-parent, grok/grok-4.7`)).toEqual([
       `${PANEL}: a panel needs at least two model families among its targets (inherit-parent does not count), got grok`,
     ]);
-    expect(check(`${PANEL}: auto, claudeAgent/claude-fable-5-1, grok/grok-4.7`)).toEqual([]);
+    expect(check(`${PANEL}: auto, claudeAgent/claude-fable-5-2, grok/grok-4.7`)).toEqual([]);
   });
 
   test("an option named like an Object prototype key is checked, not dropped", () => {
@@ -214,18 +218,16 @@ describe("checkSheet against a catalog", () => {
     expect(check(`${PANEL}: claudeAgent/claude-opus-5-5, grok/grok-4.7`, noCross)).toEqual([
       `${PANEL}: grok/grok-4.7: "grok" cannot run child tasks`,
       `${PANEL}: a panel needs at least two model families among its targets (inherit-parent does not count), got claude`,
-      'arena runners (no line, tier default): grok/grok-4.7: "grok" cannot run child tasks',
-      'arena cross-judge pool (no line, tier default): grok/grok-4.7: "grok" cannot run child tasks',
     ]);
   });
 
   test("only a panel role takes a list", () => {
-    expect(check("bug-fix: claudeAgent/claude-fable-5-1, grok/grok-4.7")).toEqual(["bug-fix: takes one entry, not a list"]);
+    expect(check("bug-fix: claudeAgent/claude-fable-5-2, grok/grok-4.7")).toEqual(["bug-fix: takes one entry, not a list"]);
   });
 
   test("the cross-judge pool takes a list of two families, as a panel does", () => {
     const pool = "arena cross-judge pool";
-    expect(check(`${pool}: claudeAgent/claude-opus-5-5 effort=high, antigravity/gemini-4-carbon thought_level=high`)).toEqual([]);
+    expect(check(`${pool}: claudeAgent/claude-opus-5-5 effort=high, antigravity/gemini-3.8-flash thought_level=high`)).toEqual([]);
     expect(check(`${pool}: claudeAgent/claude-opus-5-5 effort=high`)).toEqual([
       `${pool}: a panel needs at least two model families among its targets (inherit-parent does not count), got claude`,
     ]);
@@ -269,12 +271,12 @@ describe("checkSheet against a catalog", () => {
       "# pstack model configuration (T3)",
       "",
       "feature, refactoring: claudeAgent/claude-opus-5-5 effort=xhigh",
-      "strongest judgment: claudeAgent/claude-fable-5-1 effort=xhigh",
+      "strongest judgment: claudeAgent/claude-fable-5-2 effort=xhigh",
       "how explorer: claudeAgent/claude-opus-5-5 effort=medium",
       "how explainer: claudeAgent/claude-opus-5-5 effort=xhigh",
       "why investigators: claudeAgent/claude-opus-5-5 effort=medium",
       "why synthesizer: claudeAgent/claude-opus-5-5 effort=xhigh",
-      `${PANEL}: claudeAgent/claude-fable-5-1 effort=xhigh, codex/gpt-6.1-sol reasoningEffort=xhigh`,
+      `${PANEL}: claudeAgent/claude-fable-5-2 effort=xhigh, codex/gpt-6.1-sol reasoningEffort=xhigh`,
       "session hook: on",
     ];
     expect(check(released.join("\n"))).toEqual([]);
@@ -294,12 +296,12 @@ describe("checkSheet against a catalog", () => {
       "hardest tasks: claudeAgent/claude-fable-5-2 effort=max",
       "reflect tooling: claudeAgent/claude-opus-5-5 effort=high fastMode=true",
       "reflect judgment, divergent, synthesizer: claudeAgent/claude-opus-5-5 effort=xhigh",
-      "arena cross-judge pool: claudeAgent/claude-fable-5-2 effort=high, claudeAgent/claude-opus-5-5 effort=high fastMode=true, antigravity/gemini-4-carbon thinking_level=high",
-      "architect runners: claudeAgent/claude-fable-5-2 effort=high, claudeAgent/claude-opus-5-5 effort=high fastMode=true, antigravity/gemini-4-carbon thinking_level=high",
+      "arena cross-judge pool: claudeAgent/claude-fable-5-2 effort=high, claudeAgent/claude-opus-5-5 effort=high fastMode=true, antigravity/gemini-3.8-flash thinking_level=high",
+      "architect runners: claudeAgent/claude-fable-5-2 effort=high, claudeAgent/claude-opus-5-5 effort=high fastMode=true, antigravity/gemini-3.8-flash thinking_level=high",
       "session hook: on",
     ];
     expect(check(released.join("\n"))).toEqual([
-      'arena cross-judge pool: antigravity/gemini-4-carbon: no option "thinking_level" (has thought_level)',
+      'arena cross-judge pool: antigravity/gemini-3.8-flash: no option "thinking_level" (has thought_level)',
     ]);
     expect(check("strongest judgment: provider-gone/model-gone\narchitect runners: provider-gone/model-gone")).toEqual([]);
   });

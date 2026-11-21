@@ -2,17 +2,16 @@
   "tiers": {
     "default": "claudeAgent/claude-opus-5-5 effort=xhigh",
     "fast": "claudeAgent/claude-opus-5-5 effort=high",
-    "strongest": "claudeAgent/claude-fable-5-1 effort=xhigh",
+    "strongest": "claudeAgent/claude-fable-5-2 effort=xhigh",
     "workhorse": "antigravity/gemini-3.8-flash-high",
     "panel": [
-      "claudeAgent/claude-opus-5-5 effort=xhigh",
-      "codex/gpt-6.1-sol reasoningEffort=xhigh",
-      "grok/grok-4.7 reasoningEffort=xhigh"
+      "claudeAgent/claude-opus-5-5 effort=high",
+      "codex/gpt-6.2-sol reasoningEffort=high",
+      "antigravity/gemini-3.8-flash thought_level=high"
     ],
     "judges": [
-      "claudeAgent/claude-opus-5-5 effort=xhigh",
-      "codex/gpt-6.1-sol reasoningEffort=xhigh",
-      "grok/grok-4.7 reasoningEffort=xhigh"
+      "codex/gpt-6.2-sol reasoningEffort=high",
+      "claudeAgent/claude-opus-5-5 effort=high"
     ]
   },
   "roles": [

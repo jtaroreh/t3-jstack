@@ -13,7 +13,7 @@ Write the model sheet, `~/.config/t3-jstack/models.md` (`$XDG_CONFIG_HOME/t3-jst
 
 For Muse Code plugin loading or a Muse delegation target, read the [Muse Code adapter](../muse-code/SKILL.md) first. It separates plugin discovery from model execution readiness.
 
-Call `orchestrator_capabilities`, or `acp-mcp-call orchestrator_capabilities '{}'` where the T3 tools are not exposed. Its provider instances and their models are the dependable source. A target is valid only when its provider instance can run a child task and lists the model. Note each provider's own option IDs and values, such as `effort` on Claude, `reasoningEffort` on Codex and Grok, and `thought_level` on Antigravity. Never write a target you have not seen there. The aliases `inherit-parent` and `auto` are always valid.
+Call `orchestrator_capabilities`, or `acp-mcp-call orchestrator_capabilities '{}'` where the T3 tools are not exposed. Its provider instances and their models are the dependable source. A target is valid only when its provider instance can run a child task and lists the model. Note each provider's own option IDs and values, such as `effort` on Claude, `reasoningEffort` on Codex, and `thought_level` on Antigravity. Never write a target you have not seen there. The aliases `inherit-parent` and `auto` are always valid.
 
 ### 2. Load current state
 
@@ -24,7 +24,7 @@ A sheet without the `# defaults: 3` line comes from an older setup. That setup w
 - An `arena cross-judge pool` list of exactly one Fable entry (`claude-fable-*`), one Opus entry (`claude-opus-*`), and one Gemini entry (`gemini-*`), with any provider instance and options, in any order, takes the role's step 5 list. Fable and Opus are one vendor, so the Fable entry could judge only where the Opus entry also could.
 - A `# budget: unlimited` line becomes `large`, because no role runs above `xhigh`.
 - If the sheet has no `# defaults: 2` line either, each of these values takes the role's step 5 default:
-  - `claudeAgent/claude-fable-5-1`, with any options, in `bug-fix`, `perf-issue`, or `hillclimb`.
+  - A `claudeAgent` Fable entry older than `claude-fable-5-2`, with any options, in `bug-fix`, `perf-issue`, `hillclimb`, or `jtaroreh takeover`.
   - `claudeAgent/claude-opus-5-5`, with any options, in `swarm workers`.
   - In a panel role (`arena runners`, `arena cross-judge pool`, `interrogate reviewers`), a list of exactly `claudeAgent/claude-opus-5-5`, `codex/gpt-6.1-sol`, and `grok/grok-4.7`, with any options, in any order.
 
@@ -63,13 +63,13 @@ bug-fix: claudeAgent/claude-opus-5-5 effort=xhigh
 perf-issue: claudeAgent/claude-opus-5-5 effort=xhigh
 hillclimb: claudeAgent/claude-opus-5-5 effort=xhigh
 judgment and prose: claudeAgent/claude-opus-5-5 effort=xhigh
-arena runners: claudeAgent/claude-opus-5-5 effort=xhigh, codex/gpt-6.1-sol reasoningEffort=xhigh, grok/grok-4.7 reasoningEffort=xhigh
-arena cross-judge pool: claudeAgent/claude-opus-5-5 effort=xhigh, codex/gpt-6.1-sol reasoningEffort=xhigh, grok/grok-4.7 reasoningEffort=xhigh
+arena runners: claudeAgent/claude-opus-5-5 effort=high, codex/gpt-6.2-sol reasoningEffort=high, antigravity/gemini-3.8-flash thought_level=high
+arena cross-judge pool: codex/gpt-6.2-sol reasoningEffort=high, claudeAgent/claude-opus-5-5 effort=high
 swarm workers: claudeAgent/claude-opus-5-5 effort=high
-interrogate reviewers: claudeAgent/claude-opus-5-5 effort=xhigh, codex/gpt-6.1-sol reasoningEffort=xhigh, grok/grok-4.7 reasoningEffort=xhigh
+interrogate reviewers: claudeAgent/claude-opus-5-5 effort=high, codex/gpt-6.2-sol reasoningEffort=high, antigravity/gemini-3.8-flash thought_level=high
 # jtaroreh workhorse: antigravity/gemini-3.8-flash-high
 # jtaroreh advisor: claudeAgent/claude-opus-5-5 effort=xhigh
-# jtaroreh takeover: claudeAgent/claude-fable-5-1 effort=xhigh
+# jtaroreh takeover: claudeAgent/claude-fable-5-2 effort=xhigh
 session hook: on
 ```
 
