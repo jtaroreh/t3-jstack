@@ -302,6 +302,15 @@ export function checkProjection({ build }) {
   // Owned entries that this source no longer ships must still be intact before
   // the install may retire them.
   const planned = new Set(entries.map((e) => e.path));
+  // The projection creates only real directories, so a symlinked directory
+  // between the destination and an entry would carry a write outside it.
+  const linkedParents = new Set();
+  for (const path of [...planned, ...owned.keys()]) {
+    for (let dir = dirname(join(destSkillsDir, path)); dir !== destSkillsDir && dir.startsWith(destSkillsDir); dir = dirname(dir)) {
+      if (lstatSync(dir, { throwIfNoEntry: false })?.isSymbolicLink()) linkedParents.add(relative(destSkillsDir, dir));
+    }
+  }
+  for (const path of linkedParents) problems.push({ path, code: "symlinked-parent", detail: "a directory the projection writes into is a symlink, so its entries would land outside the destination; replace it with a real directory or remove it by hand" });
   for (const [path, mine] of owned) {
     if (planned.has(path)) continue;
     const at = join(destSkillsDir, path);

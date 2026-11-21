@@ -639,7 +639,51 @@ describe("the CLI on a T3 machine", () => {
     const result = machine.run("install");
     expect(result.status).toBe(1);
     expect(result.report).toMatchObject({ status: "blocked", problems: [{ code: "outside-profile" }] });
+    expect(result.report.problems[0].detail).toContain(`--gemini-home ${join(machine.profiles.antigravity, "config")}`);
     expect(readdirSync(unrelated)).toEqual([]);
+    rmSync(machine.home, { recursive: true, force: true });
+  });
+
+  test("a profile whose config directory links outside blocks install even before a skills directory exists", () => {
+    const machine = t3Machine(["antigravity"]);
+    fixtureSource(join(machine.userGemini, "plugins/agystack"));
+    const unrelated = join(machine.home, "unrelated");
+    mkdirSync(unrelated);
+    symlinkSync(unrelated, join(machine.profiles.antigravity, "config"));
+    const result = machine.run("install");
+    expect(result.status).toBe(1);
+    expect(result.report).toMatchObject({ status: "blocked", problems: [{ code: "outside-profile" }] });
+    expect(readdirSync(unrelated)).toEqual([]);
+    rmSync(machine.home, { recursive: true, force: true });
+  });
+
+  test("a skills link that stays inside the profile, even to a name starting with two dots, installs", () => {
+    const machine = t3Machine(["antigravity"]);
+    fixtureSource(join(machine.userGemini, "plugins/agystack"));
+    const inside = join(machine.profiles.antigravity, "..storage");
+    mkdirSync(inside);
+    mkdirSync(join(machine.profiles.antigravity, "config"));
+    symlinkSync(inside, join(machine.profiles.antigravity, "config/skills"));
+    const result = machine.run("install");
+    expect(result.status, JSON.stringify(result.report)).toBe(0);
+    expect(existsSync(join(inside, "how/SKILL.md"))).toBe(true);
+    rmSync(machine.home, { recursive: true, force: true });
+  });
+
+  test("a symlinked skill directory inside the destination blocks install, flag or not, and writes nothing through it", () => {
+    const machine = t3Machine(["antigravity"]);
+    fixtureSource(join(machine.userGemini, "plugins/agystack"));
+    const dest = join(machine.profiles.antigravity, "config/skills");
+    const unrelated = join(machine.home, "unrelated");
+    mkdirSync(unrelated);
+    mkdirSync(dest, { recursive: true });
+    symlinkSync(unrelated, join(dest, "how"));
+    for (const args of [[], ["--gemini-home", join(machine.profiles.antigravity, "config"), "--agystack-source", join(machine.userGemini, "plugins/agystack")]]) {
+      const result = machine.run("install", ...args);
+      expect(result.status).toBe(1);
+      expect(result.report.problems.map((p) => p.code)).toContain("symlinked-parent");
+      expect(readdirSync(unrelated)).toEqual([]);
+    }
     rmSync(machine.home, { recursive: true, force: true });
   });
 });

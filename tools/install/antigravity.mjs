@@ -5,7 +5,8 @@
 // writes ~/.gemini whatever GEMINI_HOME says, so the installer copies the
 // plugin tree into each profile itself. The older ACP runtime (1.4.x) that
 // earlier T3 releases installed loads no plugins or session-start hooks.
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { MANIFEST_NAME } from "./agystack.mjs";
@@ -50,23 +51,41 @@ export function installAntigravity(home, { pluginRoot, version, skills }) {
 }
 
 // The opt-in agystack projection (tools/antigravity.mjs) beside the plugin
-// gives the profile two skills of each name both ship. The projection's own
-// marker tells its SKILL.md from a skill the user wrote.
-const PROJECTED = "t3-agystack generated SKILL.md";
+// gives the profile two skills of each name both ship. A projected SKILL.md is
+// one the manifest records at its current bytes, or one carrying the
+// projection's generated comment line when no manifest is readable.
+const GENERATED = /^<!-- t3-agystack generated SKILL\.md .*native anchor [0-9a-f]+ -->$/m;
+const isFile = (path) => statSync(path, { throwIfNoEntry: false })?.isFile() ?? false;
+function ownedSkills(skillsDir) {
+  try {
+    const { entries } = JSON.parse(readFileSync(join(skillsDir, MANIFEST_NAME), "utf8"));
+    return Array.isArray(entries) ? new Map(entries.filter((e) => e?.kind === "generated-skill" || e?.kind === "adapter-skill").map((e) => [e.path, e.hash])) : null;
+  } catch {
+    return null;
+  }
+}
 function bothPresent(home, path) {
   const skillsDir = join(home.dir, "config", "skills");
+  const owned = ownedSkills(skillsDir);
   const projected = (name) => {
     const file = join(skillsDir, name, "SKILL.md");
-    return existsSync(file) && readFileSync(file, "utf8").includes(PROJECTED);
+    if (!isFile(file)) return false;
+    const bytes = readFileSync(file);
+    const hash = owned?.get(`${name}/SKILL.md`);
+    return hash ? createHash("sha256").update(bytes).digest("hex") === hash : !owned && GENERATED.test(bytes.toString("utf8"));
   };
-  const twice = existsSync(join(path, "skills")) ? readdirSync(join(path, "skills")).filter(projected) : [];
+  const pluginSkills = join(path, "skills");
+  const twice = existsSync(pluginSkills) ? readdirSync(pluginSkills).filter((name) => isFile(join(pluginSkills, name, "SKILL.md")) && projected(name)) : [];
   if (!twice.length) return [];
+  const files = twice.map((name) => join(skillsDir, name, "SKILL.md"));
   return [
     check(
       "agystack projection",
       false,
-      `${skillsDir} also holds the agystack projection, so ${twice.length} skill name${twice.length === 1 ? "" : "s"} load twice, from t3-jstack at ${path} and from the projection. Which copy Antigravity loads for a duplicate name is unproven`,
-      `keep one: turn t3-jstack off in ${join(home.dir, "config", "config.json")}, or delete the paths ${join(skillsDir, MANIFEST_NAME)} lists and then the manifest itself`,
+      `${skillsDir} also holds the agystack projection, so ${twice.length} skill name${twice.length === 1 ? "" : "s"} load twice (${twice.join(", ")}), from t3-jstack at ${path} and from the projection. Which copy Antigravity loads for a duplicate name is unproven`,
+      owned
+        ? `keep one: turn t3-jstack off in ${join(home.dir, "config", "config.json")}, or delete the paths ${join(skillsDir, MANIFEST_NAME)} lists and then the manifest itself`
+        : `keep one: turn t3-jstack off in ${join(home.dir, "config", "config.json")}, or inspect and remove the projected files, which no manifest records: ${files.join(", ")}`,
       true,
     ),
   ];

@@ -10,7 +10,7 @@
 // installer in tools/install.mjs never runs it.
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { join, relative, resolve, isAbsolute } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { existsSync, realpathSync } from "node:fs";
 
 import { expandHome } from "./install/common.mjs";
@@ -88,12 +88,15 @@ function t3GeminiHome(home) {
 }
 
 // An inferred destination that a symlink leads out of the profile is somewhere
-// the user never named, so install refuses it and doctor still reads it.
+// the user never named, so install refuses it and doctor still reads it. The
+// nearest existing ancestor decides, since a missing skills directory is
+// created inside whatever its parent resolves to.
 function escapes(profileDir, dest) {
-  if (!existsSync(dest)) return undefined;
-  const real = realpathSync(dest);
+  let at = dest;
+  while (!existsSync(at) && dirname(at) !== at) at = dirname(at);
+  const real = join(realpathSync(at), relative(at, dest));
   const rel = relative(realpathSync(profileDir), real);
-  return rel.startsWith("..") || isAbsolute(rel) ? real : undefined;
+  return rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel) ? real : undefined;
 }
 
 function homes(options) {
@@ -126,7 +129,7 @@ function main() {
       process.exit(1);
     };
     if (outsideProfile) {
-      const detail = `the profile's skills directory is a link to ${outsideProfile}, outside the T3 profile; pass --gemini-home naming that directory's parent to write there`;
+      const detail = `the inferred projection path resolves outside the T3 profile, at ${outsideProfile}; pass --gemini-home ${dirname(destSkillsDir)} to allow this destination explicitly`;
       emitBlocked(
         { status: "blocked", problems: [{ path: destSkillsDir, code: "outside-profile", detail }], dest: destSkillsDir, manifest: join(destSkillsDir, MANIFEST_NAME) },
         `install blocked before any write (nothing was written):\n  outside-profile ${destSkillsDir}: ${detail}`,

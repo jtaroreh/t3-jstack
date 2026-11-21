@@ -4,6 +4,7 @@
 // CLIs.
 import { afterEach, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   chmodSync,
   cpSync,
@@ -826,25 +827,40 @@ describe("Antigravity", () => {
   test("doctor warns when the profile also holds projected skills the plugin ships, and fails nothing", () => {
     const home = antigravityHome();
     installAntigravity(home, agy);
-    const manifest = join(home.dir, "config/skills/.t3-agystack-manifest.json");
+    const skills = join(home.dir, "config/skills");
+    const manifest = join(skills, ".t3-agystack-manifest.json");
+    const projected = join(skills, "how/SKILL.md");
+    const generated = "---\nname: how\n---\n<!-- t3-agystack generated SKILL.md (tools/antigravity.mjs). native anchor 0123456789abcdef -->\n";
+    const names = () => doctorAntigravity(home, agy).map((c) => c.name);
     writeJson(manifest, { schema: 1, entries: [] });
-    expect(doctorAntigravity(home, agy).map((c) => c.name)).toEqual(["installed", "enabled"]);
+    expect(names()).toEqual(["installed", "enabled"]);
 
-    const projected = join(home.dir, "config/skills/how/SKILL.md");
     mkdirSync(dirname(projected), { recursive: true });
-    writeFileSync(projected, "---\nname: how\n---\n<!-- t3-agystack generated SKILL.md -->\n");
-    rmSync(manifest);
+    writeFileSync(projected, generated);
+    expect(names()).toEqual(["installed", "enabled"]);
+
+    writeJson(manifest, { schema: 1, entries: [{ kind: "generated-skill", path: "how/SKILL.md", hash: createHash("sha256").update(generated).digest("hex"), anchor: "0123456789abcdef" }] });
     const checks = doctorAntigravity(home, agy);
     expect(checks.slice(0, 2).every((c) => c.ok)).toBe(true);
     expect(checks[2]).toMatchObject({ name: "agystack projection", ok: false, warn: true });
     expect(checks[2].detail).toContain("unproven");
+    expect(checks[2].detail).toContain("(how)");
     expect(checks[2].fix).toContain(manifest);
 
-    writeFileSync(projected, "---\nname: how\n---\nThe user's own skill.\n");
-    expect(doctorAntigravity(home, agy).map((c) => c.name)).toEqual(["installed", "enabled"]);
-    writeFileSync(projected, "---\nname: how\n---\n<!-- t3-agystack generated SKILL.md -->\n");
+    rmSync(manifest);
+    expect(doctorAntigravity(home, agy)[2].fix).toContain(projected);
+    writeFileSync(projected, "---\nname: how\n---\nMy notes on the t3-agystack generated SKILL.md files.\n");
+    expect(names()).toEqual(["installed", "enabled"]);
+    rmSync(projected);
+    mkdirSync(projected);
+    expect(names()).toEqual(["installed", "enabled"]);
+    rmSync(projected, { recursive: true });
+
+    writeFileSync(projected, generated);
+    rmSync(join(home.dir, "config/plugins/t3-jstack/skills/how/SKILL.md"));
+    expect(doctorAntigravity(home, agy).some((c) => c.name === "agystack projection")).toBe(false);
     writeJson(join(home.dir, "config/config.json"), { plugins: { "t3-jstack": { enabled: false } } });
-    expect(doctorAntigravity(home, agy).map((c) => c.name)).toEqual(["installed", "enabled"]);
+    expect(names()).toEqual(["installed", "enabled"]);
   });
 
   test("the installer CLI installs into each Antigravity profile, with no claude or codex on PATH", () => {
