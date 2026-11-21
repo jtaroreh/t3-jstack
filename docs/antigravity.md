@@ -31,7 +31,7 @@ With no `--gemini-home`, both verbs use the one Antigravity profile T3 has creat
 - T3 has created no Antigravity profile yet. Start an Antigravity thread in T3 once, or pass `--gemini-home`.
 - T3 has created more than one Antigravity profile. The message lists each `<profile>/config`. Pass the one you want as `--gemini-home`.
 
-A profile whose `config/skills` is a symlink to `~/.gemini/config/skills` reaches the projection that an older install wrote there. Install and doctor treat it as that one projection. A rerun writes nothing new.
+A profile whose `config/skills` is a symlink to `~/.gemini/config/skills` reaches the projection that an older install wrote there. Doctor reads it as that one projection. Install with no flag refuses to write through the link, because it leads outside the profile, and names `--gemini-home`. Pass `--gemini-home ~/.gemini/config` to update that projection.
 
 Both verbs accept:
 

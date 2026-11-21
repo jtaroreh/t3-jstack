@@ -613,7 +613,12 @@ describe("the CLI on a T3 machine", () => {
     symlinkSync(join(machine.userGemini, "skills"), join(machine.profiles.antigravity, "config/skills"));
     const before = snapshot(join(machine.userGemini, "skills"));
 
-    const again = machine.run("install");
+    const inferred = machine.run("install");
+    expect(inferred.status).toBe(1);
+    expect(inferred.report).toMatchObject({ status: "blocked", problems: [{ code: "outside-profile" }] });
+    expect(inferred.report.problems[0].detail).toContain("--gemini-home");
+    expect(snapshot(join(machine.userGemini, "skills"))).toEqual(before);
+    const again = machine.run("install", "--gemini-home", machine.userGemini);
     expect(again.status, JSON.stringify(again.report)).toBe(0);
     expect(again.report.applied).toEqual([]);
     expect(snapshot(join(machine.userGemini, "skills"))).toEqual(before);
@@ -621,6 +626,20 @@ describe("the CLI on a T3 machine", () => {
     const checked = machine.run("doctor");
     expect(checked.status, JSON.stringify(checked.report)).toBe(0);
     expect(checked.report).toMatchObject({ status: "ok", brokenLinks: [], drift: [], userOwnedPaths: [] });
+    rmSync(machine.home, { recursive: true, force: true });
+  });
+
+  test("a profile whose skills directory links somewhere unrelated blocks install and writes nothing there", () => {
+    const machine = t3Machine(["antigravity"]);
+    fixtureSource(join(machine.userGemini, "plugins/agystack"));
+    const unrelated = join(machine.home, "unrelated");
+    mkdirSync(unrelated);
+    mkdirSync(join(machine.profiles.antigravity, "config"));
+    symlinkSync(unrelated, join(machine.profiles.antigravity, "config/skills"));
+    const result = machine.run("install");
+    expect(result.status).toBe(1);
+    expect(result.report).toMatchObject({ status: "blocked", problems: [{ code: "outside-profile" }] });
+    expect(readdirSync(unrelated)).toEqual([]);
     rmSync(machine.home, { recursive: true, force: true });
   });
 });

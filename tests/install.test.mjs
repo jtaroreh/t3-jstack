@@ -21,7 +21,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { doctorAntigravity, installAntigravity } from "../tools/install/antigravity.mjs";
@@ -823,18 +823,26 @@ describe("Antigravity", () => {
     });
   });
 
-  test("doctor warns when the profile also holds the agystack projection, and fails nothing", () => {
+  test("doctor warns when the profile also holds projected skills the plugin ships, and fails nothing", () => {
     const home = antigravityHome();
     installAntigravity(home, agy);
     const manifest = join(home.dir, "config/skills/.t3-agystack-manifest.json");
     writeJson(manifest, { schema: 1, entries: [] });
+    expect(doctorAntigravity(home, agy).map((c) => c.name)).toEqual(["installed", "enabled"]);
+
+    const projected = join(home.dir, "config/skills/how/SKILL.md");
+    mkdirSync(dirname(projected), { recursive: true });
+    writeFileSync(projected, "---\nname: how\n---\n<!-- t3-agystack generated SKILL.md -->\n");
+    rmSync(manifest);
     const checks = doctorAntigravity(home, agy);
     expect(checks.slice(0, 2).every((c) => c.ok)).toBe(true);
     expect(checks[2]).toMatchObject({ name: "agystack projection", ok: false, warn: true });
     expect(checks[2].detail).toContain("unproven");
     expect(checks[2].fix).toContain(manifest);
-    expect(JSON.parse(readFileSync(manifest, "utf8"))).toEqual({ schema: 1, entries: [] });
 
+    writeFileSync(projected, "---\nname: how\n---\nThe user's own skill.\n");
+    expect(doctorAntigravity(home, agy).map((c) => c.name)).toEqual(["installed", "enabled"]);
+    writeFileSync(projected, "---\nname: how\n---\n<!-- t3-agystack generated SKILL.md -->\n");
     writeJson(join(home.dir, "config/config.json"), { plugins: { "t3-jstack": { enabled: false } } });
     expect(doctorAntigravity(home, agy).map((c) => c.name)).toEqual(["installed", "enabled"]);
   });

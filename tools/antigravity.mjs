@@ -10,8 +10,8 @@
 // installer in tools/install.mjs never runs it.
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
-import { existsSync } from "node:fs";
+import { join, relative, resolve, isAbsolute } from "node:path";
+import { existsSync, realpathSync } from "node:fs";
 
 import { expandHome } from "./install/common.mjs";
 import { discoverHomes } from "./install/homes.mjs";
@@ -80,20 +80,30 @@ function emit(options, payload, human) {
 function t3GeminiHome(home) {
   const { homes, settings } = discoverHomes({ env: process.env, home });
   const profiles = homes.filter((h) => h.harness === "antigravity" && existsSync(h.dir));
-  if (profiles.length === 1) return { geminiHome: join(profiles[0].dir, "config"), from: profiles[0].from.join(", ") };
+  if (profiles.length === 1) return { geminiHome: join(profiles[0].dir, "config"), from: profiles[0].from.join(", "), profileDir: profiles[0].dir };
   if (!profiles.length) {
     throw new Error(`no T3 Antigravity profile found from ${settings.path}${settings.error ? ` (${settings.error})` : ""}; start an Antigravity thread in T3 once, or pass --gemini-home DIR`);
   }
   throw new Error(`${profiles.length} T3 Antigravity profiles found (${profiles.map((p) => `${join(p.dir, "config")} for ${p.from.join(", ")}`).join("; ")}); pass --gemini-home with the one to use`);
 }
 
+// An inferred destination that a symlink leads out of the profile is somewhere
+// the user never named, so install refuses it and doctor still reads it.
+function escapes(profileDir, dest) {
+  if (!existsSync(dest)) return undefined;
+  const real = realpathSync(dest);
+  const rel = relative(realpathSync(profileDir), real);
+  return rel.startsWith("..") || isAbsolute(rel) ? real : undefined;
+}
+
 function homes(options) {
   const home = homedir();
   const userGeminiHome = resolve(expandHome(options.geminiHome ?? join(home, ".gemini", "config"), home));
-  const { geminiHome, from } = options.geminiHome ? { geminiHome: userGeminiHome, from: "--gemini-home" } : t3GeminiHome(home);
+  const { geminiHome, from, profileDir } = options.geminiHome ? { geminiHome: userGeminiHome, from: "--gemini-home" } : t3GeminiHome(home);
   return {
     destSkillsDir: join(geminiHome, "skills"),
     from,
+    outsideProfile: profileDir ? escapes(profileDir, join(geminiHome, "skills")) : undefined,
     sourceRoot: resolve(expandHome(options.agystackSource ?? join(userGeminiHome, "plugins", "agystack"), home)),
     packageRoot: fileURLToPath(new URL("..", import.meta.url)),
   };
@@ -109,12 +119,19 @@ function main() {
     emit(options, { status: "error", message: error.message }, `antigravity: ${error.message}`);
     process.exit(1);
   }
-  const { destSkillsDir, from, sourceRoot, packageRoot } = resolved;
+  const { destSkillsDir, from, outsideProfile, sourceRoot, packageRoot } = resolved;
   if (options.verb === "install") {
     const emitBlocked = (payload, human) => {
       emit(options, payload, human);
       process.exit(1);
     };
+    if (outsideProfile) {
+      const detail = `the profile's skills directory is a link to ${outsideProfile}, outside the T3 profile; pass --gemini-home naming that directory's parent to write there`;
+      emitBlocked(
+        { status: "blocked", problems: [{ path: destSkillsDir, code: "outside-profile", detail }], dest: destSkillsDir, manifest: join(destSkillsDir, MANIFEST_NAME) },
+        `install blocked before any write (nothing was written):\n  outside-profile ${destSkillsDir}: ${detail}`,
+      );
+    }
     if (!existsSync(sourceRoot)) {
       // Missing source is an environment problem, not a usage error: report it
       // in the blocked-report shape and exit 1 so automation can parse it.

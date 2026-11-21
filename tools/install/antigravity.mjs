@@ -5,7 +5,7 @@
 // writes ~/.gemini whatever GEMINI_HOME says, so the installer copies the
 // plugin tree into each profile itself. The older ACP runtime (1.4.x) that
 // earlier T3 releases installed loads no plugins or session-start hooks.
-import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { MANIFEST_NAME } from "./agystack.mjs";
@@ -50,16 +50,23 @@ export function installAntigravity(home, { pluginRoot, version, skills }) {
 }
 
 // The opt-in agystack projection (tools/antigravity.mjs) beside the plugin
-// gives the profile two skills of most names.
+// gives the profile two skills of each name both ship. The projection's own
+// marker tells its SKILL.md from a skill the user wrote.
+const PROJECTED = "t3-agystack generated SKILL.md";
 function bothPresent(home, path) {
-  const manifest = join(home.dir, "config", "skills", MANIFEST_NAME);
-  if (!existsSync(manifest)) return [];
+  const skillsDir = join(home.dir, "config", "skills");
+  const projected = (name) => {
+    const file = join(skillsDir, name, "SKILL.md");
+    return existsSync(file) && readFileSync(file, "utf8").includes(PROJECTED);
+  };
+  const twice = existsSync(join(path, "skills")) ? readdirSync(join(path, "skills")).filter(projected) : [];
+  if (!twice.length) return [];
   return [
     check(
       "agystack projection",
       false,
-      `${dirname(manifest)} also holds the agystack projection, so most skill names load twice, from t3-jstack at ${path} and from the projection. Which copy Antigravity loads for a duplicate name is unproven`,
-      `keep one: turn t3-jstack off in ${join(home.dir, "config", "config.json")}, or delete the paths ${manifest} lists and then the manifest itself`,
+      `${skillsDir} also holds the agystack projection, so ${twice.length} skill name${twice.length === 1 ? "" : "s"} load twice, from t3-jstack at ${path} and from the projection. Which copy Antigravity loads for a duplicate name is unproven`,
+      `keep one: turn t3-jstack off in ${join(home.dir, "config", "config.json")}, or delete the paths ${join(skillsDir, MANIFEST_NAME)} lists and then the manifest itself`,
       true,
     ),
   ];
