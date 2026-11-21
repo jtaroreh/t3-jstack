@@ -21,4 +21,4 @@ A PASS applies to the inspected decision, artifact, or proposed action. Record u
 
 For an action review, provide the exact command or tool arguments, target, expected effect, and relevant preconditions. PASS permits that action only within existing authorization. Execute it once, verify the observed result, and report it. Changed arguments, requirements, or preconditions require reassessment. A resumed session must inspect whether the action already happened before retrying it.
 
-For final review, include the actual checks and full delivery scope. A plan PASS does not approve a later implementation. A malformed response, failed call, or missing evidence is not PASS. Clarify one unusable response with a fresh advisor task. If it remains unusable or unavailable, report the required review blocked.
+For final review, include the actual checks, the delivery scope no receipt covers, and the receipts for the rest. A plan PASS does not approve a later implementation. A malformed response, failed call, or missing evidence is not PASS. Clarify one unusable response with a fresh advisor task. If it remains unusable or unavailable, report the required review blocked.
