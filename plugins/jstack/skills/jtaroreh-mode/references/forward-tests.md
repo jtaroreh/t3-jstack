@@ -18,7 +18,7 @@ Use these scenarios when changing the mode.
 12. Resume after compaction with a superseded constraint. Reload the task note, reconcile the latest requirements, and leave delivery files free of scratch state.
 13. Match the parent's provider and model but give the configured workhorse different options. Delegate with the configured options. An `auto` role instead deliberately keeps the parent selection.
 14. Approve a design in a panel, then implement it. Obtain final artifact review. Only a panel that reviewed the completed artifact and its checks can replace that review.
-15. Implement an ordinary change whose every file a test suite covers, with a `verify-task.mjs` note that holds a `fail` attempt on a broken variant and a later pass. The coordinator reruns the receipt, sees `"passed":true`, and dispatches no advisor.
+15. Implement an ordinary change whose changed behavior specific assertions fully cover. The coordinator approves the command and its inputs, confirms that the same assertions catch the relevant defects on the pre-fix code or targeted broken variants, and reruns the approved command on the delivery tree. It dispatches no advisor only after the run's output shows every covering assertion ran and passed. `"passed":true` alone is not enough.
 16. Repeat case 15 with a diff that also edits a test. The receipt does not replace review, and the advisor reviews the change.
 17. Repeat case 15, but the coordinator reads the workhorse's receipt without rerunning it. The receipt does not count, and the change gets advisor review.
 
