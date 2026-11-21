@@ -8,7 +8,7 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSyn
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import { checkSheet, parseSheet } from "../../plugins/jstack/skills/setup-jstack/scripts/t3-sheet.mjs";
-import { check, INSTALL_HINT, tempBeside, writeAtomic } from "./common.mjs";
+import { check, tempBeside, writeAtomic } from "./common.mjs";
 
 export const HOME_SHEET = "t3-jstack-models.md";
 // The home file name the t3-pstack install wrote, kept as a migration source
@@ -94,7 +94,7 @@ export function moveSheet(sheet, homes) {
   return steps;
 }
 
-export function doctorSheet(sheet, homes, { catalog, roles, tiers }) {
+export function doctorSheet(sheet, homes, { catalog, roles, tiers, retired = [], hint }) {
   const oldSheet = oldSheetPath(sheet);
   const old = [...homeSheets(homes), ...oldHomeSheets(homes)].filter(isFile);
   const legacy = [oldSheet, ...oldHomeSheets(homes)].filter(isFile);
@@ -108,13 +108,17 @@ export function doctorSheet(sheet, homes, { catalog, roles, tiers }) {
           "machine sheet",
           false,
           `missing; ${paths.join(", ")} ${differ ? "differ, so the installer leaves them" : "not moved yet"}`,
-          differ ? `keep one, then ${INSTALL_HINT}` : INSTALL_HINT,
+          differ ? `keep one, then ${hint}` : hint,
         ),
       ];
     }
     return [check("machine sheet", false, "none, so every role runs on its skill's defaults", SETUP_HINT, true)];
   }
-  const problems = checkSheet(parseSheet(readFileSync(sheet, "utf8")), { roles, defaults: tiers, catalog });
+  const lines = parseSheet(readFileSync(sheet, "utf8"));
+  const problems = checkSheet(lines, { roles, defaults: tiers, catalog, retired });
+  // A retired line passes, so a released sheet keeps working, and setup-jstack
+  // drops it on its next run.
+  const stale = [...new Set(lines.map(({ key }) => key).filter((key) => retired.includes(key)))];
   const shadowing = [...(isFile(oldSheet) ? [oldSheet] : []), ...old].filter((path) => !resolvesTo(path, sheet) && !sameBytes(path, sheet));
   return [
     check(
@@ -131,7 +135,10 @@ export function doctorSheet(sheet, homes, { catalog, roles, tiers }) {
       "home sheets",
       shadowing.length === 0,
       shadowing.length ? `${shadowing.join(", ")} differ from the machine sheet` : "none differ from it",
-      `move each aside, then ${INSTALL_HINT} to link it`,
+      `move each aside, then ${hint} to link it`,
     ),
+    ...(stale.length
+      ? [check("retired roles", false, `no skill reads ${stale.map((key) => `"${key}"`).join(", ")}`, `${SETUP_HINT}, which drops them`, true)]
+      : []),
   ];
 }

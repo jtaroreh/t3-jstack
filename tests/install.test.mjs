@@ -6,6 +6,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import {
   chmodSync,
+  cpSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -20,17 +21,18 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { doctorAntigravity, installAntigravity } from "../tools/install/antigravity.mjs";
 import { doctorClaude, installClaude, syncScopedRecords } from "../tools/install/claude.mjs";
-import { AppServer } from "../tools/install/codex.mjs";
-import { parseSource, writeAtomic } from "../tools/install/common.mjs";
-import { discoverHomes } from "../tools/install/homes.mjs";
+import { AppServer, pinCheck } from "../tools/install/codex.mjs";
+import { npxOrigin, parseSource, writeAtomic } from "../tools/install/common.mjs";
+import { antigravityProfile, discoverHomes } from "../tools/install/homes.mjs";
 import { doctorSheet, moveSheet, oldSheetPath } from "../tools/install/sheet.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
-const { roles, tiers } = JSON.parse(readFileSync(join(repoRoot, "plugins/jstack/models.json"), "utf8"));
+const { roles, tiers, retired } = JSON.parse(readFileSync(join(repoRoot, "plugins/jstack/models.json"), "utf8"));
 const FIX = "rerun `npx -y github:jtaroreh/t3-jstack install`";
 
 const scratch = [];
@@ -96,6 +98,29 @@ describe("discoverHomes", () => {
       ],
       settings: { path: join(t3, "userdata/settings.json"), instances: 6, error: undefined },
     });
+  });
+
+  test("finds each Antigravity instance's profile where T3 keeps it, and needs no CLI for it", () => {
+    const t3 = tmp();
+    writeJson(join(t3, "userdata/settings.json"), {
+      providerInstances: {
+        antigravity: { driver: "antigravity", displayName: "Antigravity", enabled: true },
+        agy_work: { driver: "antigravity", enabled: false },
+      },
+    });
+    const found = discoverHomes({ env: { T3CODE_HOME: t3 }, home: "/home/u" });
+    // T3's own profile for the default instance, as this machine's T3 named it.
+    const profiles = join(t3, "userdata/providers/antigravity");
+    expect(found.homes.slice(2)).toEqual([
+      {
+        harness: "antigravity",
+        dir: join(profiles, "ac0a3dfd6dddb20962cecff6ee5fe65e19d3923be20e52c5ab52ff877f7e4c32"),
+        from: ["T3 instance antigravity"],
+        bin: null,
+      },
+      { harness: "antigravity", dir: antigravityProfile(join(t3, "userdata/settings.json"), "agy_work"), from: ["T3 instance agy_work (disabled)"], bin: null },
+    ]);
+    expect(found.settings.instances).toBe(2);
   });
 
   test("expands a leading ~ in an instance's home variable and binary as T3 does", () => {
@@ -351,6 +376,53 @@ describe("--source", () => {
     expect(parseSource("https://github.com/jtaroreh/t3-jstack", "/home/u").key).toBe(github.key);
     expect(() => parseSource("./missing", cwd)).toThrow("--source ./missing: not owner/repo, a Git URL, or an existing directory");
   });
+
+  test("is in every fix doctor prints, and a GitHub --source runs that repository's installer", () => {
+    const claude = fakeClaude();
+    const doctor = (source) => {
+      const r = spawnSync(process.execPath, [join(repoRoot, "tools/install.mjs"), "doctor", "--source", source, "--json"], {
+        env: { HOME: tmp(), PATH: join(claude.bin, "..") },
+        encoding: "utf8",
+      });
+      return JSON.parse(r.stdout).homes.find((row) => row.harness === "claude").checks;
+    };
+    expect(doctor("someone/t3-jstack")).toEqual([
+      {
+        name: "installed",
+        ok: false,
+        detail: "the home does not exist",
+        fix: "rerun `npx -y github:someone/t3-jstack install --source someone/t3-jstack`",
+      },
+    ]);
+    const local = resolve(repoRoot);
+    expect(doctor(local)[0].fix).toBe(`rerun \`npx -y github:jtaroreh/t3-jstack install --source ${local}\``);
+
+    const fork = parseSource("someone/t3-jstack", "/home/u");
+    const home = { harness: "claude", dir: tmp(), from: ["default"], bin: "claude" };
+    const fixes = doctorClaude(home, { ...context, source: fork, trusted: new Set([github.key, fork.key]) })
+      .filter((c) => !c.ok)
+      .map((c) => c.fix);
+    expect(fixes).toEqual(Array(4).fill("rerun `npx -y github:someone/t3-jstack install --source someone/t3-jstack`"));
+  });
+
+  test("leaves a home on jtaroreh/t3-jstack where it is, and doctor warns with the commands that switch it", () => {
+    const { dir } = claudeHome();
+    syncScopedRecords(dir);
+    const fork = parseSource("someone/t3-jstack", "/home/u");
+    const forked = { ...context, source: fork, trusted: new Set([github.key, fork.key]) };
+    const claude = fakeClaude();
+    const home = { harness: "claude", dir, from: ["default"], bin: claude.bin };
+    expect(installClaude(home, forked)).toEqual(["turned on marketplace auto-update"]);
+    expect(doctorClaude(home, forked)[0]).toEqual({
+      name: "marketplace",
+      ok: false,
+      warn: true,
+      detail: "jtaroreh/t3-jstack, not --source someone/t3-jstack",
+      fix:
+        `to install from someone/t3-jstack, remove it with \`CLAUDE_CONFIG_DIR=${dir} claude plugin marketplace remove t3-jstack\`, ` +
+        "then rerun `npx -y github:someone/t3-jstack install --source someone/t3-jstack`",
+    });
+  });
 });
 
 describe("files the installer replaces", () => {
@@ -369,6 +441,27 @@ describe("codex app-server output that is not JSON-RPC", () => {
     writeFileSync(bin, "#!/bin/sh\necho 'token sk-live-123 expired'\nexec cat >/dev/null\n");
     chmodSync(bin, 0o755);
     await expect(AppServer.start({ dir, bin })).rejects.toThrow(new Error("codex app-server printed a line that is not JSON-RPC"));
+  });
+});
+
+describe("doctor's check of a Codex marketplace's pin", () => {
+  test("passes on this release's tag, and on a local directory, which has no tag", () => {
+    const git = { source_type: "git", source: "https://github.com/jtaroreh/t3-jstack.git" };
+    const pin = (marketplace) => pinCheck(marketplace, "v2.2.5", FIX);
+    expect(pin({ ...git, ref: "v2.2.5" })).toEqual({ name: "marketplace pin", ok: true, detail: "v2.2.5" });
+    expect(pin({ source_type: "local", source: "/src/t3-jstack" })).toEqual({
+      name: "marketplace pin",
+      ok: true,
+      detail: "none, since a local directory has no tag",
+    });
+    expect([git, { ...git, ref: "v2.2.3" }, { ...git, ref: "main" }, undefined].map(pin)).toEqual(
+      ["none, expected v2.2.5", "v2.2.3, expected v2.2.5", "main, expected v2.2.5", "no marketplace"].map((detail) => ({
+        name: "marketplace pin",
+        ok: false,
+        detail,
+        fix: FIX,
+      })),
+    );
   });
 });
 
@@ -399,7 +492,7 @@ describe("the model sheet", () => {
     expect(existsSync(join(root, ".claude-never-run"))).toBe(false);
 
     expect(moveSheet(sheet, homes)).toEqual([]);
-    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })).toEqual([
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers, hint: FIX })).toEqual([
       { name: "machine sheet valid", ok: true, detail: "every line parses (pass --catalog to check targets)" },
       { name: "home sheets", ok: true, detail: "none differ from it" },
     ]);
@@ -457,7 +550,7 @@ describe("the model sheet", () => {
 
     expect(moveSheet(sheet, homes)).toEqual([]);
     expect(existsSync(sheet)).toBe(false);
-    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })).toEqual([
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers, hint: FIX })).toEqual([
       {
         name: "machine sheet",
         ok: false,
@@ -479,7 +572,7 @@ describe("the model sheet", () => {
       `linked ${join(root, ".codex-pool/t3-jstack-models.md")} to it`,
     ]);
     expect(lstatSync(join(root, ".codex/t3-jstack-models.md")).isSymbolicLink()).toBe(false);
-    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })[1]).toEqual({
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers, hint: FIX })[1]).toEqual({
       name: "home sheets",
       ok: false,
       detail: `${join(root, ".codex/t3-jstack-models.md")} differ from the machine sheet`,
@@ -509,7 +602,7 @@ describe("the model sheet", () => {
     expect(readlinkSync(old)).toBe(sheet);
 
     expect(moveSheet(sheet, homes)).toEqual([]);
-    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })).toEqual([
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers, hint: FIX })).toEqual([
       { name: "machine sheet valid", ok: true, detail: "every line parses (pass --catalog to check targets)" },
       { name: "home sheets", ok: true, detail: "none differ from it" },
     ]);
@@ -530,7 +623,7 @@ describe("the model sheet", () => {
     expect(readlinkSync(join(root, ".claude/t3-pstack-models.md"))).toBe(sheet);
 
     expect(moveSheet(sheet, homes)).toEqual([]);
-    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })).toEqual([
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers, hint: FIX })).toEqual([
       { name: "machine sheet valid", ok: true, detail: "every line parses (pass --catalog to check targets)" },
       { name: "home sheets", ok: true, detail: "none differ from it" },
     ]);
@@ -539,7 +632,7 @@ describe("the model sheet", () => {
   test("never creates an old home name on a fresh install", () => {
     const { homes, sheet } = machine();
     expect(moveSheet(sheet, homes)).toEqual([]);
-    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })).toEqual([
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers, hint: FIX })).toEqual([
       {
         name: "machine sheet",
         ok: false,
@@ -554,7 +647,7 @@ describe("the model sheet", () => {
     const { root, homes, sheet } = machine();
     writeFileSync(join(root, ".claude/t3-pstack-models.md"), SHEET);
 
-    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })).toEqual([
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers, hint: FIX })).toEqual([
       {
         name: "machine sheet",
         ok: false,
@@ -563,7 +656,7 @@ describe("the model sheet", () => {
       },
     ]);
     moveSheet(sheet, homes);
-    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })[0].ok).toBe(true);
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers, hint: FIX })[0].ok).toBe(true);
   });
 
   test("leaves legacy sheets that disagree, and doctor says so", () => {
@@ -573,7 +666,7 @@ describe("the model sheet", () => {
 
     expect(moveSheet(sheet, homes)).toEqual([]);
     expect(existsSync(sheet)).toBe(false);
-    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })).toEqual([
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers, hint: FIX })).toEqual([
       {
         name: "machine sheet",
         ok: false,
@@ -585,7 +678,7 @@ describe("the model sheet", () => {
 
   test("doctor warns without a sheet and fails on a malformed one", () => {
     const { homes, sheet } = machine();
-    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })).toEqual([
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers, hint: FIX })).toEqual([
       {
         name: "machine sheet",
         ok: false,
@@ -596,7 +689,7 @@ describe("the model sheet", () => {
     ]);
     mkdirSync(join(sheet, ".."), { recursive: true });
     writeFileSync(sheet, "bug-fix: claude-opus\nhow critics: inherit-parent\n");
-    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })[0]).toEqual({
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers, hint: FIX })[0]).toEqual({
       name: "machine sheet valid",
       ok: false,
       detail: 'bug-fix: "claude-opus" does not start with <providerInstanceId>/<modelId>; "how critics" is not a pstack role',
@@ -608,14 +701,216 @@ describe("the model sheet", () => {
     const { homes, sheet } = machine();
     mkdirSync(join(sheet, ".."), { recursive: true });
     writeFileSync(sheet, "jtaroreh workhorse: antigravity/gemini-3.8-flash-high\nsession hook: on\n");
-    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })[0].ok).toBe(true);
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers, hint: FIX })[0].ok).toBe(true);
     const catalog = JSON.parse(readFileSync(join(repoRoot, "tests/fixtures/t3-catalog.json"), "utf8"));
-    const result = doctorSheet(sheet, homes, { catalog, roles, tiers })[0];
+    const result = doctorSheet(sheet, homes, { catalog, roles, tiers, hint: FIX })[0];
     expect(result.ok).toBe(false);
-    expect(result.detail).toContain('no provider instance "antigravity"');
+    expect(result.detail).toContain('"antigravity" does not list model "gemini-3.8-flash-high"');
     writeFileSync(sheet, "jtaroreh workhorse: Gemini Flash\n");
-    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers })[0].ok).toBe(false);
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers, hint: FIX })[0].ok).toBe(false);
     writeFileSync(sheet, "session hook: on\n");
-    expect(doctorSheet(sheet, homes, { catalog, roles, tiers })[0].ok).toBe(true);
+    expect(doctorSheet(sheet, homes, { catalog, roles, tiers, hint: FIX })[0].ok).toBe(true);
+  });
+
+  test("doctor passes a sheet that still carries retired lines, and warns that setup-jstack drops them", () => {
+    const { homes, sheet } = machine();
+    mkdirSync(join(sheet, ".."), { recursive: true });
+    const released = [
+      "bug-fix: claudeAgent/claude-opus-5-5 effort=xhigh",
+      "how explorer: claudeAgent/claude-opus-5-5 effort=medium",
+      "hardest tasks: claudeAgent/claude-fable-5-2 effort=max",
+      "reflect tooling: claudeAgent/claude-opus-5-5 effort=high fastMode=true",
+    ];
+    writeFileSync(sheet, `${released.join("\n")}\n`);
+    expect(doctorSheet(sheet, homes, { catalog: null, roles, tiers, retired, hint: FIX })).toEqual([
+      { name: "machine sheet valid", ok: true, detail: "every line parses (pass --catalog to check targets)" },
+      { name: "home sheets", ok: true, detail: "none differ from it" },
+      {
+        name: "retired roles",
+        ok: false,
+        detail: 'no skill reads "how explorer", "hardest tasks", "reflect tooling"',
+        fix: "run /t3-jstack:setup-jstack in a T3 thread, which drops them",
+        warn: true,
+      },
+    ]);
+  });
+});
+
+// An Antigravity profile as T3 leaves it after a first start, holding agy's
+// own config and no plugin.
+function antigravityHome() {
+  const dir = tmp();
+  writeJson(join(dir, "config/config.json"), { plugins: { swarm: { enabled: true } } });
+  return { harness: "antigravity", dir, from: ["T3 instance antigravity"], bin: null };
+}
+const pluginRoot = join(repoRoot, "plugins/jstack");
+const shipped = JSON.parse(readFileSync(join(pluginRoot, ".antigravity-plugin/plugin.json"), "utf8")).version;
+const agy = { pluginRoot, version: shipped, skills, hint: FIX };
+const installedAt = (home) => join(home.dir, "config/plugins/t3-jstack");
+
+describe("Antigravity", () => {
+  test("copies the plugin into the profile, where agy discovers it, and a second run changes nothing", () => {
+    const home = antigravityHome();
+    expect(installAntigravity(home, agy)).toEqual([`installed ${shipped}`]);
+    for (const file of ["hooks.json", ".antigravity-plugin/plugin.json", "hooks/session-start.sh", "skills/poteto-mode/SKILL.md"]) {
+      expect(readFileSync(join(installedAt(home), file))).toEqual(readFileSync(join(pluginRoot, file)));
+    }
+    expect(installAntigravity(home, agy)).toEqual([]);
+    expect(readdirSync(join(home.dir, "config/plugins"))).toEqual(["t3-jstack"]);
+    expect(doctorAntigravity(home, agy)).toEqual([
+      { name: "installed", ok: true, detail: shipped },
+      { name: "enabled", ok: true, detail: "yes" },
+    ]);
+  });
+
+  test("replaces an older copy whole, so a file the release dropped goes with it", () => {
+    const home = antigravityHome();
+    installAntigravity(home, agy);
+    writeJson(join(installedAt(home), ".antigravity-plugin/plugin.json"), { name: "t3-jstack", version: "2.3.0" });
+    writeFileSync(join(installedAt(home), "dropped.md"), "gone in this release\n");
+    expect(doctorAntigravity(home, agy)[0]).toEqual({ name: "installed", ok: false, detail: `2.3.0, expected ${shipped}`, fix: FIX });
+    expect(installAntigravity(home, agy)).toEqual([`updated 2.3.0 to ${shipped}`]);
+    expect(existsSync(join(installedAt(home), "dropped.md"))).toBe(false);
+    expect(readdirSync(join(home.dir, "config/plugins"))).toEqual(["t3-jstack"]);
+  });
+
+  test("reinstalls a copy whose skills are missing", () => {
+    const home = antigravityHome();
+    installAntigravity(home, agy);
+    rmSync(join(installedAt(home), "skills/how"), { recursive: true });
+    expect(doctorAntigravity(home, agy)[0]).toMatchObject({ ok: false, detail: `${shipped}, but its files at ${installedAt(home)} are missing or changed` });
+    expect(installAntigravity(home, agy)).toEqual([`reinstalled ${shipped}, whose files were missing or changed`]);
+    expect(existsSync(join(installedAt(home), "skills/how/SKILL.md"))).toBe(true);
+  });
+
+  test("reinstalls a copy whose session-start hook files are missing or changed", () => {
+    const remove = (path) => rmSync(path);
+    const change = (path) => writeFileSync(path, "changed\n");
+    for (const [file, damage] of [
+      ["hooks.json", remove],
+      ["hooks/session-start.sh", remove],
+      ["hooks/session-start-context.md", change],
+      ["skills/setup-jstack/scripts/read-sheet.sh", remove],
+    ]) {
+      const home = antigravityHome();
+      installAntigravity(home, agy);
+      damage(join(installedAt(home), file));
+      expect(doctorAntigravity(home, agy)[0]).toMatchObject({ ok: false, detail: `${shipped}, but its files at ${installedAt(home)} are missing or changed` });
+      expect(installAntigravity(home, agy)).toEqual([`reinstalled ${shipped}, whose files were missing or changed`]);
+      expect(readFileSync(join(installedAt(home), file))).toEqual(readFileSync(join(pluginRoot, file)));
+    }
+  });
+
+  test("creates a profile T3 has not started yet, private as T3 keeps it", () => {
+    const home = { harness: "antigravity", dir: join(tmp(), "providers/antigravity/abc"), from: [], bin: null };
+    expect(installAntigravity(home, agy)).toEqual([`installed ${shipped}`]);
+    expect(mode(home.dir)).toBe(0o700);
+    expect(doctorAntigravity(home, agy).every((c) => c.ok)).toBe(true);
+  });
+
+  test("doctor fails a plugin the profile's config turns off, and never edits that config", () => {
+    const home = antigravityHome();
+    installAntigravity(home, agy);
+    const config = join(home.dir, "config/config.json");
+    writeJson(config, { plugins: { "t3-jstack": { enabled: false } } });
+    expect(installAntigravity(home, agy)).toEqual([]);
+    expect(JSON.parse(readFileSync(config, "utf8"))).toEqual({ plugins: { "t3-jstack": { enabled: false } } });
+    expect(doctorAntigravity(home, agy)[1]).toEqual({
+      name: "enabled",
+      ok: false,
+      detail: `no, ${config} turns it off`,
+      fix: 'turn t3-jstack on in that file\'s "plugins" map',
+    });
+  });
+
+  test("the installer CLI installs into each Antigravity profile, with no claude or codex on PATH", () => {
+    const user = tmp();
+    const bin = join(user, "bin");
+    mkdirSync(bin);
+    symlinkSync(spawnSync("node", ["-p", "process.execPath"], { encoding: "utf8" }).stdout.trim(), join(bin, "node"));
+    const settings = join(user, ".t3/userdata/settings.json");
+    writeJson(settings, { providerInstances: { antigravity: { driver: "antigravity", enabled: true } } });
+    const run = (command) => {
+      const r = spawnSync(join(bin, "node"), [join(repoRoot, "tools/install.mjs"), command, "--source", repoRoot, "--json"], {
+        cwd: user,
+        env: { PATH: `${bin}:/usr/bin:/bin`, HOME: user },
+        encoding: "utf8",
+      });
+      return JSON.parse(r.stdout);
+    };
+    const profile = antigravityProfile(settings, "antigravity");
+    const row = (report) => report.homes.find((h) => h.harness === "antigravity");
+    const first = run("install");
+    expect(row(first)).toMatchObject({ dir: profile, steps: [`installed ${shipped}`] });
+    expect(row(first).checks.every((c) => c.ok)).toBe(true);
+    expect(row(run("update")).steps).toEqual([]);
+    expect(row(run("doctor")).checks.map((c) => c.name)).toEqual(["installed", "enabled"]);
+    expect(existsSync(join(profile, "t3-jstack-models.md"))).toBe(false);
+  });
+});
+
+// npx installs `github:<owner>/<repo>` at <cache>/_npx/<hash>/node_modules/t3-jstack
+// and records the spec in the package.json two levels up.
+describe("npxOrigin", () => {
+  const npxCache = (spec) => {
+    const dir = tmp();
+    const root = join(dir, "node_modules/t3-jstack");
+    mkdirSync(root, { recursive: true });
+    if (spec !== undefined) writeJson(join(dir, "package.json"), { dependencies: { "t3-jstack": spec }, _npx: { packages: [spec] } });
+    return root;
+  };
+
+  test("names the GitHub repository npx fetched, with or without a ref", () => {
+    expect(npxOrigin(npxCache("github:p4cs-974/t3-jstack"))).toBe("p4cs-974/t3-jstack");
+    expect(npxOrigin(npxCache("github:p4cs-974/t3-jstack#v2.5.0"))).toBe("p4cs-974/t3-jstack");
+    expect(npxOrigin(npxCache("jtaroreh/t3-jstack"))).toBe("jtaroreh/t3-jstack");
+  });
+
+  test("names nothing for a checkout, a registry spec, or a cache without a record", () => {
+    expect(npxOrigin(repoRoot)).toBeUndefined();
+    expect(npxOrigin(npxCache("^2.4.0"))).toBeUndefined();
+    expect(npxOrigin(npxCache("git+https://example.com/x/t3-jstack.git"))).toBeUndefined();
+    expect(npxOrigin(npxCache(undefined))).toBeUndefined();
+  });
+
+  test("a fork's installer defaults --source to that fork", () => {
+    const user = tmp();
+    const bin = join(user, "bin");
+    mkdirSync(bin);
+    symlinkSync(spawnSync("node", ["-p", "process.execPath"], { encoding: "utf8" }).stdout.trim(), join(bin, "node"));
+    const root = npxCache("github:someone/t3-jstack");
+    for (const path of ["tools", "plugins"]) cpSync(join(repoRoot, path), join(root, path), { recursive: true });
+    const r = spawnSync(join(bin, "node"), [join(root, "tools/install.mjs"), "doctor", "--json"], {
+      cwd: user,
+      env: { PATH: `${bin}:/usr/bin:/bin`, HOME: user },
+      encoding: "utf8",
+    });
+    expect(JSON.parse(r.stdout).source).toBe("someone/t3-jstack");
+  });
+
+  test("a fork's installer run with another --source trusts no marketplace from that fork", () => {
+    const user = tmp();
+    const bin = join(user, "bin");
+    mkdirSync(bin);
+    symlinkSync(spawnSync("node", ["-p", "process.execPath"], { encoding: "utf8" }).stdout.trim(), join(bin, "node"));
+    const claude = fakeClaude();
+    symlinkSync(claude.bin, join(bin, "claude"));
+    writeJson(join(user, ".claude/settings.json"), {
+      extraKnownMarketplaces: { "t3-jstack": { source: { source: "github", repo: "someone/t3-jstack" } } },
+    });
+    const root = npxCache("github:someone/t3-jstack");
+    for (const path of ["tools", "plugins"]) cpSync(join(repoRoot, path), join(root, path), { recursive: true });
+    const r = spawnSync(join(bin, "node"), [join(root, "tools/install.mjs"), "update", "--source", "jtaroreh/t3-jstack", "--json"], {
+      cwd: user,
+      env: { PATH: `${bin}:/usr/bin:/bin`, HOME: user },
+      encoding: "utf8",
+    });
+    expect(claude.calls()).toEqual([]);
+    expect(r.status).toBe(1);
+    expect(JSON.parse(r.stdout).homes.find((h) => h.harness === "claude").checks[0]).toMatchObject({
+      name: "marketplace",
+      ok: false,
+      detail: "someone/t3-jstack, which is neither jtaroreh/t3-jstack nor --source",
+    });
   });
 });

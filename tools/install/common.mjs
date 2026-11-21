@@ -10,7 +10,6 @@ import { basename, delimiter, dirname, extname, join, resolve } from "node:path"
 export const PLUGIN_ID = "t3-jstack@t3-jstack";
 export const MARKETPLACE = "t3-jstack";
 export const HOME_REPO = "jtaroreh/t3-jstack";
-export const INSTALL_HINT = "rerun `npx -y github:jtaroreh/t3-jstack install`";
 
 // `~`, `~/` and `~\` expand as T3 expands them (provider-core
 // pathExpansion.ts). `~user` does not.
@@ -29,9 +28,26 @@ export function readJson(path) {
 // source is written: a GitHub repository by its lowercased `owner/repo`, a
 // directory by its real path.
 const GITHUB_URL = /^(?:https?:\/\/|ssh:\/\/git@|git@)github\.com[/:]([^/]+\/[^/]+?)(?:\.git)?\/?$/i;
-const github = (repo) => ({ key: `github:${repo.toLowerCase()}`, label: repo });
+const github = (repo) => ({ key: `github:${repo.toLowerCase()}`, label: repo, repo });
 const gitUrl = (url) => (GITHUB_URL.test(url) ? { ...github(url.match(GITHUB_URL)[1]), label: url } : { key: `git:${url}`, label: url });
 const directory = (path) => ({ key: `local:${existsSync(path) ? realpathSync(path) : resolve(path)}`, label: path });
+
+// The GitHub repository npx fetched this installer from, so a fork's own
+// `npx -y github:<owner>/t3-jstack` installs from that fork with no --source.
+// npx writes the spec it was given to the package.json two levels above the
+// package, at <npm cache>/_npx/<hash>/node_modules/t3-jstack.
+const GITHUB_SPEC = /^(?:github:)?([A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9._-]+?)(?:\.git)?(?:#.*)?$/;
+export function npxOrigin(packageRoot) {
+  const root = resolve(packageRoot);
+  if (basename(dirname(root)) !== "node_modules") return undefined;
+  let spec;
+  try {
+    spec = JSON.parse(readFileSync(join(root, "..", "..", "package.json"), "utf8")).dependencies?.["t3-jstack"];
+  } catch {
+    return undefined;
+  }
+  return typeof spec === "string" ? spec.match(GITHUB_SPEC)?.[1] : undefined;
+}
 
 // `--source`, read as both CLIs read it: `owner/repo` is GitHub, a URL or
 // `user@host:path` is Git, and anything else is a directory, which must exist.
@@ -41,6 +57,13 @@ export function parseSource(text, home) {
   const path = resolve(expandHome(text, home));
   if (!existsSync(path)) throw new Error(`--source ${text}: not owner/repo, a Git URL, or an existing directory`);
   return { ...directory(path), arg: path, local: path };
+}
+
+// The command that reruns this install from `source`. A GitHub source is a
+// copy of this repository, so its own installer converges on its version.
+export function installHint(source) {
+  if (source.key === github(HOME_REPO).key) return "rerun `npx -y github:jtaroreh/t3-jstack install`";
+  return `rerun \`npx -y github:${source.repo ?? HOME_REPO} install --source ${source.arg}\``;
 }
 
 // The sources a Claude Code home or a Codex home records for a marketplace.
@@ -58,17 +81,33 @@ export function codexSource(entry) {
   return { key: JSON.stringify(entry), label: JSON.stringify(entry) };
 }
 
+// A home installs only from a marketplace whose every source is trusted.
+export const trustedOnly = (sources, trusted) => sources.length > 0 && sources.every((s) => trusted.has(s.key));
+
 // The marketplace check both doctors run. A marketplace named t3-jstack from
 // any source but the trusted ones is not installed from, nor its hook trusted.
-export function marketplaceCheck(sources, trusted, remove) {
-  if (!sources.length) return check("marketplace", false, "none", INSTALL_HINT);
+// One from jtaroreh/t3-jstack, on a run whose --source names another, is
+// still installed from, and the check warns that the run did not switch it.
+export function marketplaceCheck(sources, { source, trusted }, remove) {
+  const hint = installHint(source);
+  if (!sources.length) return check("marketplace", false, "none", hint);
   const labels = [...new Set(sources.map((s) => s.label))].join(", ");
   const foreign = sources.filter((s) => !trusted.has(s.key));
+  if (foreign.length) {
+    return check(
+      "marketplace",
+      false,
+      `${labels}, which is neither ${HOME_REPO} nor --source`,
+      `if you trust it, rerun with --source ${foreign[0].label}; otherwise ${remove}, then ${hint}`,
+    );
+  }
+  const elsewhere = !sources.some((s) => s.key === source.key);
   return check(
     "marketplace",
-    foreign.length === 0,
-    foreign.length ? `${labels}, which is neither ${HOME_REPO} nor --source` : labels,
-    `if you trust it, rerun with --source ${foreign[0]?.label}; otherwise ${remove}, then ${INSTALL_HINT}`,
+    !elsewhere,
+    elsewhere ? `${labels}, not --source ${source.label}` : labels,
+    `to install from ${source.label}, ${remove}, then ${hint}`,
+    elsewhere,
   );
 }
 

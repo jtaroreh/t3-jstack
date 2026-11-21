@@ -1,0 +1,13 @@
+{
+  "name": "t3-jstack",
+  "displayName": "t3-jstack (pstack for T3 Code)",
+  "version": "2.1.1",
+  "description": "pstack for T3 Code on an Antigravity host: Lauren Tan's pstack with its Cursor mechanics rewritten in place for T3, so subagents, panels, schedules, and PR watches dispatch through T3's orchestration.",
+  "author": {
+    "name": "Joel Taroreh",
+    "url": "https://github.com/jtaroreh"
+  },
+  "homepage": "https://github.com/jtaroreh/t3-jstack",
+  "repository": "https://github.com/jtaroreh/t3-jstack",
+  "logo": "assets/jstack-icon.png"
+}

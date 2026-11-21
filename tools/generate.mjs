@@ -5,11 +5,11 @@
 // nothing and fails when a committed copy is stale, so it cannot ship.
 //
 // Sources of truth:
-//   VERSION  -> the "version" field in the Claude Code and Codex manifests,
+//   VERSION  -> the "version" field in the Claude Code, Codex, and Antigravity manifests,
 //               the Claude Code marketplace entry, and package.json
 //   plugins/jstack/models.json (the T3 model policy: tier defaults and roles)
-//     -> each model-consuming skill's "## Models" section, interrogate's
-//        reviewer table, and setup-jstack's sheet block (tools/derive-t3.mjs)
+//     -> each model-consuming skill's "## Models" section and setup-jstack's
+//        sheet block (tools/derive-t3.mjs)
 //   plugins/jstack/agents/*.md -> the "agents" list in
 //     plugins/jstack/.claude-plugin/plugin.json (a list replaces the default
 //     agents/ directory, so it names every agent)
@@ -18,8 +18,9 @@
 //        inside the installed plugin
 //
 // Also validated: skill frontmatter, the skills tree's links,
-// the plugin layout, agent frontmatter, the Codex marketplace, and both hooks
-// files against their pins in tools/frozen-hooks.json.
+// the plugin layout, agent frontmatter, the Codex marketplace, the Claude Code
+// and Codex hooks files against their pins in tools/frozen-hooks.json, and
+// the Antigravity hooks file.
 
 import { execFileSync } from "node:child_process";
 import {
@@ -49,10 +50,13 @@ export { parseFrontmatter };
 const repo = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const CODEX_MANIFEST = `${PLUGIN}/.codex-plugin/plugin.json`;
+// Antigravity loads hooks only from hooks.json at the plugin root.
+const ANTIGRAVITY_HOOKS = "hooks.json";
 const VERSIONED_MANIFESTS = [
   ".claude-plugin/marketplace.json",
   `${PLUGIN}/.claude-plugin/plugin.json`,
   CODEX_MANIFEST,
+  `${PLUGIN}/.antigravity-plugin/plugin.json`,
   "package.json",
 ];
 
@@ -160,12 +164,15 @@ export function validatePluginLayout(pluginRoot) {
   }
 }
 
-const TIERS = ["default", "strongest", "panel", "workhorse"];
+const TIERS = ["default", "fast", "strongest", "panel", "judges", "workhorse"];
+// The tiers whose default is a list: the review and design panels, and the
+// arena cross-judge pool, which tries one judge from the list in order.
+const LIST_TIERS = ["panel", "judges"];
 
 // Check models.json's shape, throwing with the offending tier, role, or entry
 // named. `skillExists(skill)` reports whether a role's skill directory carries
 // a SKILL.md. Every tier holds T3 entries in the sheet grammar of
-// setup-jstack's t3-sheet.mjs, and the panel spans two model families.
+// setup-jstack's t3-sheet.mjs, and each list tier spans two model families.
 export function parseModels(raw, skillExists) {
   const fail = (message) => {
     throw new Error(`models.json: ${message}`);
@@ -176,8 +183,9 @@ export function parseModels(raw, skillExists) {
   for (const tier of TIERS) if (!Object.hasOwn(raw.tiers, tier)) fail(`tiers has no "${tier}"`);
   for (const [tier, value] of Object.entries(raw.tiers)) {
     if (!TIERS.includes(tier)) fail(`tiers names "${tier}", which is not one of ${TIERS.join(", ")}`);
-    if (tier !== "panel" && typeof value !== "string") fail(`tier "${tier}" must be one entry, not a list`);
-    if (tier === "panel" && !Array.isArray(value)) fail('tier "panel" must be a list');
+    const isList = LIST_TIERS.includes(tier);
+    if (!isList && typeof value !== "string") fail(`tier "${tier}" must be one entry, not a list`);
+    if (isList && !Array.isArray(value)) fail(`tier "${tier}" must be a list`);
     const list = [value].flat();
     if (new Set(list).size !== list.length) fail(`tier "${tier}" lists an entry twice`);
     const parsed = list.map((entry) => {
@@ -193,7 +201,7 @@ export function parseModels(raw, skillExists) {
       if (!target) fail(`tier "${tier}" must name a target, not inherit the parent`);
       return target;
     });
-    if (tier === "panel" && panelFamilies(parsed).size < 2) fail("the panel needs at least two model families");
+    if (isList && panelFamilies(parsed).size < 2) fail(`tier "${tier}" needs at least two model families`);
   }
   const labels = new Set();
   for (const role of raw.roles) {
@@ -205,6 +213,8 @@ export function parseModels(raw, skillExists) {
     if (!TIERS.includes(role.tier)) fail(`role "${role.role}" names tier "${role.tier}", which tiers does not define`);
     if (!skillExists(role.skill)) fail(`role "${role.role}" names skill "${role.skill}", which has no SKILL.md`);
   }
+  if (!Array.isArray(raw.retired)) fail('"retired" must be a list');
+  for (const label of raw.retired) if (labels.has(label)) fail(`"${label}" is both a role and retired`);
   return raw;
 }
 
@@ -351,6 +361,32 @@ export function validateHooks(hooksJson, { statOf, file = "hooks/hooks.json", ro
           else if (i === 0 && executed && !(st.mode & 0o111)) faults.push(`${event}: ${rel} is not executable`);
         });
       }
+    }
+  }
+  if (faults.length) throw new Error(`${file}:\n  ${faults.join("\n  ")}`);
+}
+
+// Antigravity's hooks file maps each hook's name to its events, and runs each
+// command with `sh -c` in the plugin root, so the script a command hands to
+// `sh` must exist in the plugin. Antigravity trusts no hook by hash, so the
+// file has no pin.
+const ANTIGRAVITY_HANDLER = Type.Object(
+  { type: Type.Optional(Type.Literal("command")), command: Type.String({ minLength: 1 }), timeout: Type.Optional(Type.Integer({ minimum: 1 })) },
+  { additionalProperties: false },
+);
+const ANTIGRAVITY_HOOKS_FILE = Type.Record(
+  Type.String(),
+  Type.Object({ enabled: Type.Optional(Type.Boolean()), SessionStart: Type.Array(ANTIGRAVITY_HANDLER) }, { additionalProperties: false }),
+);
+
+export function validateAntigravityHooks(hooksJson, { statOf, file = ANTIGRAVITY_HOOKS }) {
+  const raw = JSON.parse(hooksJson);
+  const faults = shapeFaults(ANTIGRAVITY_HOOKS_FILE, raw, "file");
+  for (const [name, spec] of faults.length ? [] : Object.entries(raw)) {
+    for (const { command } of spec.SessionStart) {
+      const script = command.match(/^sh \.\/(\S+)/)?.[1];
+      if (!script) faults.push(`${name}: command does not run a plugin script with sh ./<path>: ${command}`);
+      else if (!statOf(script)) faults.push(`${name}: ${script} does not exist in the plugin`);
     }
   }
   if (faults.length) throw new Error(`${file}:\n  ${faults.join("\n  ")}`);
@@ -521,6 +557,7 @@ export function problems(root, models) {
   for (const file of hookFiles) {
     attempt(() => validateHooks(readFileSync(join(pluginRoot, file), "utf8"), { statOf, file }));
   }
+  attempt(() => validateAntigravityHooks(readFileSync(join(pluginRoot, ANTIGRAVITY_HOOKS), "utf8"), { statOf }));
   // A Codex manifest that does not parse names no hooks file to compare.
   if (codex) attempt(() => {
     const paths = hookFiles.map((file) => `${PLUGIN}/${file}`);

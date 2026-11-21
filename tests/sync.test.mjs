@@ -82,22 +82,20 @@ function underUmask(mask, body) {
 
 describe("applySubstitutions", () => {
   test("rewrites Cursor primitives and counts per rule", () => {
-    const { text, counts } = applySubstitutions("Spawn it with the Task tool and `run_in_background: true`.", RULES.substitutions);
+    const { text, counts } = applySubstitutions("Spawn it with `Task` and `run_in_background: true`.", RULES.substitutions);
     expect(text).toBe('Spawn it with `delegate_task` and `mode: "async"`.');
-    expect(counts.get("the Task tool")).toBe(1);
+    expect(counts.get("`Task`")).toBe(1);
   });
 
-  test("a model default points at the Models section that owns the file, whatever the slug", () => {
+  test("a playbook's model default points at poteto-mode's Models section, whatever the slug", () => {
     const line = (slug) => `your configured hillclimb model (default \`${slug}\`)`;
     for (const slug of ["grok-4.7-xhigh-fast", "claude-opus-5-5-max", "composer-2-fast"]) {
       expect(applySubstitutions(line(slug), RULES.substitutions, "skills/poteto-mode/playbooks/hillclimb.md").text).toBe(
         "your configured hillclimb model (default in poteto-mode's [Models](../SKILL.md#models))",
       );
-      expect(applySubstitutions(line(slug), RULES.substitutions, "skills/reflect/SKILL.md").text).toBe(
-        "your configured hillclimb model (default in [Models](#models))",
-      );
     }
-    expect(applySubstitutions("(default `true`)", RULES.substitutions, "skills/reflect/SKILL.md").text).toBe("(default `true`)");
+    const flag = "(default `true`)";
+    expect(applySubstitutions(flag, RULES.substitutions, "skills/poteto-mode/playbooks/hillclimb.md").text).toBe(flag);
   });
 
   test("every rule's replacement is free of the denylist", () => {
@@ -121,38 +119,68 @@ describe("applySubstitutions", () => {
   test.each([
     [
       "skills/how/SKILL.md",
-      "Every spawn is a Task subagent with `subagent_type: generalPurpose` and `readonly: true`.",
-      'Every spawn is a `delegate_task` child with `role: "research"` and a brief that says to inspect only and change no file.',
+      "Spawn one Task subagent with `subagent_type: generalPurpose` and `readonly: true` that explores and explains in one pass.",
+      'Spawn one `delegate_task` child with `role: "research"` that explores and explains in one pass. Leave `target` unset, so it runs on this chat\'s model.',
     ],
     [
-      "skills/why/SKILL.md",
-      "Each spawn below names a role line in the `pstack-models.mdc` rule and a default. Set `model` to that line's value, or to the default if the rule or the line is missing. Leave `model` unset when the value is `auto` or `inherit-parent`. If the Task tool rejects a slug, use the default and say so. If it rejects the default, use the closest valid slug of the same family from its error message.",
-      "Each spawn below names a role line in the model sheet and a default. Set `target` from that line's entry, or from the default if the sheet or the line is missing. Leave `target` unset when the value is `auto` or `inherit-parent`. If `delegate_task` rejects an entry, use the default and say so. If it rejects the default, use another target of the same family from `orchestrator_capabilities`.",
+      "skills/reflect/SKILL.md",
+      "Read the whole transcript.",
+      "Read this thread's whole transcript with `t3_thread_read` (`view: \"activity\"`, from its start with `afterPosition: -1`, then each `nextPosition`), with the thread ID that `t3_thread_configure` returns when called with no `threadId`.",
+    ],
+    [
+      "skills/recall/SKILL.md",
+      "Spawn one investigator subagent per source, in agent mode because readonly strips MCP access, and ask each",
+      "Spawn one investigator per source, each a `delegate_task` child with full tool access, MCP included, and ask each",
     ],
     [
       "skills/arena/SKILL.md",
-      "Families go by prefix: `claude-*`, and `grok-*` with `cursor-grok-*` and `composer-*`. A refused `composer-*` entry runs on `grok-4.7-xhigh-fast`.",
-      "A model's family is the first segment of its ID's last `/` part, such as `claude`, `gpt`, or `grok`, whatever provider instance serves it.",
+      "Families go by prefix, and the longest match wins: `claude-fable-*`, `claude-*`, and `gemini-*`, after dropping a leading `cursor-`. Any other slug's family is its text before the first hyphen.",
+      "A model's family is the first segment of its ID's last `/` part, such as `claude`, `gpt`, or `gemini`, whatever provider instance serves it, except that Fable (`claude-fable-*`) is its own family.",
+    ],
+    [
+      "skills/arena/SKILL.md",
+      "spawn one readonly judge from the `arena cross-judge pool` line in `~/.cursor/rules/pstack-models.mdc`, by default `claude-opus-5-5-high-fast`, `gemini-4-carbon-high`.",
+      "spawn one judge, briefed to inspect only and change no file, from the `arena cross-judge pool` line in the model sheet, by default the entries in [Models](#models), in that order.",
+    ],
+    [
+      "skills/poteto-mode/SKILL.md",
+      "If the rule has no `# defaults: 3` line, an older setup wrote it.",
+      "If the model sheet has no `# defaults: 3` line, an older setup wrote it.",
     ],
     [
       "skills/interrogate/SKILL.md",
-      "Families go by prefix: `claude-*`, and `grok-*` with `cursor-grok-*` and `composer-*`. A refused `composer-*` entry runs on Reviewer B's default.",
-      "A model's family is the first segment of its ID's last `/` part, such as `claude`, `gpt`, or `grok`, whatever provider instance serves it.",
+      "Spawn each adversary as `generalPurpose`.",
+      'Spawn each adversary as a `delegate_task` child with `role: "review"` and no persona brief.',
     ],
     [
       "skills/poteto-mode/SKILL.md",
-      "Otherwise use standard speed, the same slug without `-fast`. Verification is the exception and stays on the `swarm workers` model and speed (`grok-4.7-xhigh-fast` by default).",
-      "Otherwise use standard speed, the entry without that option. Verification is the exception and stays on the `swarm workers` model and speed (default in the **swarm** skill's Models section).",
+      "If the Task tool rejects a slug, never pass it again. Fall back to the role's line or default, then the calling skill's fallback, then the closest valid slug of the same family, then omit `model`. Say so.",
+      "If `delegate_task` rejects an entry, never pass it again. Fall back to the role's line or default, then the calling skill's fallback, then another target of the same family from `orchestrator_capabilities`, then omit `target`. Say so.",
     ],
     [
       "skills/poteto-mode/SKILL.md",
-      "on an explicit pause, going offline, a Cursor restart, or imminent context compaction.",
-      "on an explicit pause, going offline, an app restart, or imminent context compaction.",
+      "No role runs above xhigh. Opus 5.5 always runs its `-fast` slug. Verification always runs on the `swarm workers` model, `claude-opus-5-5-high-fast` by default.",
+      "No role runs above xhigh. Opus 5.5 runs at standard speed, so leave out `fastMode`, which on T3 is a priced fast mode. Verification always runs on the `swarm workers` entry (default in the **swarm** skill's Models section).",
+    ],
+    [
+      "skills/poteto-mode/SKILL.md",
+      "A line of `inherit-parent` or `auto` runs the role on the parent model, so omit `model` and spawn `generalPurpose`, because `poteto-agent` defaults to Opus 5.5.",
+      "A line of `inherit-parent` or `auto` runs the role on the parent model, so omit `target`.",
+    ],
+    [
+      "skills/poteto-mode/playbooks/eval.md",
+      "An agent that only dispatches, polls, or packs results runs on `claude-opus-5-5-medium-fast`.",
+      "An agent that only dispatches, polls, or packs results runs on `claudeAgent/claude-opus-5-5 effort=medium`.",
+    ],
+    [
+      "agents/poteto-agent.md",
+      "name: poteto-agent\nmodel: claude-opus-5-5-xhigh-fast\n---",
+      "name: poteto-agent\n---",
     ],
     [
       "skills/poteto-mode/playbooks/autopilot-stack.md",
-      "Each tick re-reads both playbooks from trunk, and this one wins where they differ.",
-      "Each tick re-reads both playbooks from disk, and this one wins where they differ.",
+      "Every loop tick prompt names this file, so each tick sees the no-merge rule.",
+      "Every `schedule_task` prompt names this file, so each tick sees the no-merge rule.",
     ],
     [
       "skills/ketchup/SKILL.md",
@@ -167,11 +195,12 @@ describe("applySubstitutions", () => {
 
   // The T3 behavior the port adds on an upstream anchor: each must survive.
   test.each([
-    ["skills/poteto-mode/SKILL.md", "Interrupt-chained resumes silently drop directives, so fire a fresh subagent with consolidated scope rather than trusting a \"done\" summary.", ["**Dispatch on T3.**", "dispatch ledger", "`BLOCKED: independent review`", "`clientRequestId`"]],
-    ["skills/poteto-mode/SKILL.md", "- Contested design → the **interrogate** skill (multi-model adversarial) before shipping.", ["before Opening a PR", "After three fix rounds, stop"]],
-    ["skills/arena/SKILL.md", "Prefer a different model family from the parent's.", ["no model scores its own work"]],
-    ["skills/poteto-mode/playbooks/babysit.md", "Run `drive` and `background` under `/loop` in dynamic mode.", ["--timeout 540", "watch_pull_request", "--settle"]],
-    ["skills/poteto-mode/playbooks/autopilot-full.md", "Each owner is a Cursor cloud agent that builds, opens its PR", ["t3_thread_launch", "t3_thread_send"]],
+    ["skills/poteto-mode/SKILL.md", "its checkout, its uncommitted changes, or a process it still runs.", ["**Dispatch on T3.**", "dispatch ledger", "`BLOCKED: independent review`", "`clientRequestId`", "you are a leaf", "`isolation: \"worktree\"`", "`Unable to resolve the parent checkout commit`", "after the worker.md pointer"]],
+    ["skills/poteto-mode/SKILL.md", "- Starting any agent, whether a Task subagent or a Project worker → the first line of its kickoff is `Read <path>/worker.md before anything else.`", ["`delegate_task`", "${CLAUDE_CONFIG_DIR:-~/.claude}/plugins/", "${CODEX_HOME:-~/.codex}/plugins/"]],
+    ["skills/poteto-mode/worker.md", "- If you start an agent, the first line of its kickoff is `Read <path>/worker.md before anything else.`, with `<path>` the absolute path of the folder that holds this file.", ["${CODEX_HOME:-~/.codex}/plugins/", "you are a leaf", "Never call `watch_pull_request`"]],
+    ["skills/arena/SKILL.md", "Give each candidate its own output location (a git worktree where possible, otherwise `/tmp/arena-<slug>/candidate-<n>/`), per the **separate-before-serializing-shared-state** principle skill.", ["`isolation: \"worktree\"`"]],
+    ["skills/poteto-mode/playbooks/babysit.md", "On GitHub, status comes from the mode's watcher at `scripts/watch-pr/watch-pr`.", ["<plugin root>/skills/poteto-mode/scripts/watch-pr/watch-pr", "--timeout 540", "exit 6", "watch_pull_request"]],
+    ["skills/poteto-mode/playbooks/autopilot-full.md", "Each owner is a Cursor cloud agent that builds, opens its PR", ["`delegate_task` child", "`isolation: \"worktree\"`", "t3_thread_send"]],
     ["skills/no-comments/SKILL.md", '1. Spawn `Task` with `subagent_type: "comment-sicko"`. Pass the scope.', ["<plugin root>/agents/comment-sicko.md", "no worktree"]],
   ])("%s keeps its T3 insert", (rel, upstream, needles) => {
     const { text } = applySubstitutions(upstream, RULES.substitutions, rel);
@@ -467,13 +496,13 @@ describe("syncComponent", () => {
 
   test("clean update, new file, and port-edited file each route correctly", () => {
     const oldUp = tree({
-      "skills/a/SKILL.md": "Step 1: ask with the Task tool.\n",
+      "skills/a/SKILL.md": "Step 1: ask with `Task`.\n",
       "skills/b/SKILL.md": "Old b body.\n",
     });
     const newUp = tree({
-      "skills/a/SKILL.md": "Step 1: ask with the Task tool. Step 2: verify.\n",
+      "skills/a/SKILL.md": "Step 1: ask with `Task`. Step 2: verify.\n",
       "skills/b/SKILL.md": "New b body.\n",
-      "skills/c/SKILL.md": "Brand new skill. Spawn with the Task tool early.\n",
+      "skills/c/SKILL.md": "Brand new skill. Spawn with `Task` early.\n",
     });
     const local = tree({
       "skills/a/SKILL.md": "Step 1: ask with `delegate_task`.\n",
@@ -488,7 +517,7 @@ describe("syncComponent", () => {
       { kind: "added", rel: "skills/c/SKILL.md" },
     ]);
     expect(report.conflicts).toEqual([{ rel: "skills/b/SKILL.md", reason: "conflict", hunks: 1 }]);
-    expect(report.counts.get("the Task tool")).toBe(2);
+    expect(report.counts.get("`Task`")).toBe(2);
     expect(report.hits).toEqual([]);
     expect(readFileSync(join(local, "skills/a/SKILL.md"), "utf8")).toBe(
       "Step 1: ask with `delegate_task`. Step 2: verify.\n",
@@ -527,7 +556,7 @@ describe("syncComponent", () => {
   });
 
   test("an upstream deletion removes the local copy when the port never edited it", () => {
-    const oldUp = tree({ "a.md": "keep\n", "gone.md": "the Task tool here\n", "forked.md": "old\n" });
+    const oldUp = tree({ "a.md": "keep\n", "gone.md": "`Task` here\n", "forked.md": "old\n" });
     const newUp = tree({ "a.md": "keep\n" });
     const local = tree({ "a.md": "keep\n", "gone.md": "`delegate_task` here\n", "forked.md": "old, port edit\n" });
 
@@ -1420,6 +1449,22 @@ describe("syncComponent", () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("s.md: git merge-file reported conflicts (exit 1) but printed no markers");
     expect(readFileSync(join(localDir, "s.md"), "utf8")).toBe("port\n");
+  });
+});
+
+describe("bootstrapComponent", () => {
+  test("a local symlink at a directory above upstream paths is reported at the link, and nothing is written through it", () => {
+    const outside = tree({ "arena/SKILL.md": "outside\n" });
+    const newDir = tree({ "skills/arena/SKILL.md": "upstream\n", "skills/arena/ref.md": "ref\n", "skills/how/SKILL.md": "how\n" });
+    const localDir = tree({ "skills/how/SKILL.md": "old\n" });
+    symlinkSync(join(outside, "arena"), join(localDir, "skills/arena"));
+
+    const report = bootstrapComponent({ newDir, localDir, rules: [] });
+
+    expect(report.symlinks).toEqual(["skills/arena"]);
+    expect(readdirSync(join(outside, "arena"))).toEqual(["SKILL.md"]);
+    expect(readFileSync(join(outside, "arena/SKILL.md"), "utf8")).toBe("outside\n");
+    expect(readFileSync(join(localDir, "skills/how/SKILL.md"), "utf8")).toBe("old\n");
   });
 });
 

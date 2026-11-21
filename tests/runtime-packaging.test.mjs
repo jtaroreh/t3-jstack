@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { validateCodexMarketplace, validateHooks } from "../tools/generate.mjs";
+import { validateAntigravityHooks, validateCodexMarketplace, validateHooks } from "../tools/generate.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -30,6 +30,7 @@ describe("manifests", () => {
   const json = (rel) => JSON.parse(readFileSync(join(repoRoot, rel), "utf8"));
   const claude = json("plugins/jstack/.claude-plugin/plugin.json");
   const codex = json("plugins/jstack/.codex-plugin/plugin.json");
+  const antigravity = json("plugins/jstack/.antigravity-plugin/plugin.json");
   const claudeMarketplace = json(".claude-plugin/marketplace.json");
   const codexMarketplace = json(".agents/plugins/marketplace.json");
   const devPackage = json("package.json");
@@ -42,6 +43,18 @@ describe("manifests", () => {
     expect(claudeMarketplace.owner).toEqual(claude.author);
     expect(claudeMarketplace.plugins.map(({ name, source }) => [name, source])).toEqual([[claude.name, "./plugins/jstack"]]);
     expect(codex.version).toBe(claude.version);
+    // Antigravity silently drops a top-level field it does not know, such as
+    // license or keywords, and reads a relative logo path.
+    const { name, author, homepage, repository, displayName, version } = antigravity;
+    expect({ name, author, homepage, repository, displayName, version }).toEqual({
+      name: claude.name,
+      author: claude.author,
+      homepage: claude.homepage,
+      repository: claude.repository,
+      displayName: claude.displayName,
+      version: claude.version,
+    });
+    expect(existsSync(join(repoRoot, "plugins/jstack", antigravity.logo))).toBe(true);
     expect(claudeMarketplace.plugins[0].version).toBe(claude.version);
     expect(devPackage.version).toBe(claude.version);
     expect(codexMarketplace.name).toBe(claudeMarketplace.name);
@@ -159,3 +172,33 @@ describe("validateHooks", () => {
   });
 });
 
+
+describe("validateAntigravityHooks", () => {
+  const file = (spec) => JSON.stringify({ "t3-jstack": spec });
+  const run = { type: "command", command: "sh ./hooks/session-start.sh antigravity" };
+
+  test("passes the shipped file", () => {
+    const hooks = readFileSync(join(repoRoot, "plugins/jstack/hooks.json"), "utf8");
+    expect(() => validateAntigravityHooks(hooks, { statOf: (rel) => existsSync(join(repoRoot, "plugins/jstack", rel)) })).not.toThrow();
+  });
+
+  test("faults a script missing from the plugin", () => {
+    expect(() => validateAntigravityHooks(file({ SessionStart: [run] }), { statOf: () => null })).toThrow(
+      "t3-jstack: hooks/session-start.sh does not exist in the plugin",
+    );
+  });
+
+  test("faults a command that runs no plugin script, since it starts in the plugin root", () => {
+    expect(() =>
+      validateAntigravityHooks(file({ SessionStart: [{ command: '"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh" claude' }] }), { statOf: () => true }),
+    ).toThrow("command does not run a plugin script with sh ./<path>");
+  });
+
+  test("faults Claude Code's shape, which Antigravity would not load", () => {
+    const claudeShape = readFileSync(join(repoRoot, "plugins/jstack/hooks/hooks.json"), "utf8");
+    expect(() => validateAntigravityHooks(claudeShape, { statOf: () => true })).toThrow("unknown key matcher, hooks");
+    expect(() => validateAntigravityHooks(file({ SessionStart: [{ ...run, matcher: "startup" }] }), { statOf: () => true })).toThrow(
+      "unknown key matcher",
+    );
+  });
+});

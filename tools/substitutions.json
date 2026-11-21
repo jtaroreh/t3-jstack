@@ -1,6 +1,42 @@
 {
   "substitutions": [
     {
+      "pattern": "Older defaults put another Gemini model, then `gemini-4-neon-high`, in the panel seat. So in any rule, a `gemini-4-neon-high` entry, or a `gemini-4-*` entry other than `gemini-4-neon-*`, in a panel role (`arena runners`, `arena cross-judge pool`, `interrogate reviewers`) is an old default. Each one becomes `gemini-4-neon-xhigh`. A Gemini 4 Neon entry at any other level is the user's choice and stays. Tell the user which entries you replaced.",
+      "files": "^skills/setup-pstack/SKILL\\.md$",
+      "replacement": "Older defaults put another Gemini model, then Gemini 4 Neon at a `high` reasoning level, in the panel seat. So in any sheet, a Gemini 4 Neon entry at `high`, or an entry whose model ID's last `/` part matches `gemini-4-*` other than Gemini 4 Neon, in a panel role (`arena runners`, `arena cross-judge pool`, `interrogate reviewers`) is an old default. Each one becomes Gemini 4 Neon at `xhigh` on the same provider instance, such as `antigravity/gemini-4-neon thought_level=xhigh`, if `orchestrator_capabilities` with `search: \"gemini-4-neon\"` lists it there. A Gemini 4 Neon entry at any other level is the user's choice and stays. Tell the user which entries you replaced.",
+      "rationale": "The sheet: upstream's move of old Gemini panel entries, Neon at high included, to Gemini 4 Neon at xhigh, in T3 entries. An entry keeps its provider instance, since Neon on another instance can bill differently, so it moves only where that instance lists Neon. OpenCode's short capabilities list omits Neon, so the check searches"
+    },
+    {
+      "pattern": "A rule without the `# defaults: 3` line comes from an older setup. That setup wrote a line for every role, so some of its values are old defaults, not choices. Before step 3, replace these values:\n\n- An `arena cross-judge pool` list of exactly one `claude-fable-*` entry, one `claude-opus-*` entry, and one `gemini-*` entry, in any order, takes the role's step 5 list. Fable and Opus are one vendor, so the Fable entry could judge only where the Opus entry also could.\n- A `# budget: unlimited` line becomes `large`, because no role runs above `xhigh`.\n- If the rule has no `# defaults: 2` line either, an old slug is one that matches `grok-*`. An old slug in `feature, refactoring`, `bug-fix`, `perf-issue`, `hillclimb`, or `swarm workers` takes the role's step 5 default. In a panel role (`arena runners`, `arena cross-judge pool`, `interrogate reviewers`), a list of exactly one `claude-opus-*` entry and one old slug, in either order, takes the role's step 5 list. In any other list, each old slug becomes `claude-opus-5-5-high-fast`.\n\nEvery other value is the user's choice and stays, including an old slug in any other role and every `inherit-parent` or `auto` value.",
+      "files": "^skills/setup-pstack/SKILL\\.md$",
+      "replacement": "A sheet without the `# defaults: 3` line comes from an older setup. That setup wrote a line for every role, so some of its values are old defaults, not choices. Before step 3, replace these values:\n\n- An `arena cross-judge pool` list of exactly one Fable entry (`claude-fable-*`), one Opus entry (`claude-opus-*`), and one Gemini entry (`gemini-*`), with any provider instance and options, in any order, takes the role's step 5 list. Fable and Opus are one vendor, so the Fable entry could judge only where the Opus entry also could.\n- A `# budget: unlimited` line becomes `large`, because no role runs above `xhigh`.\n- If the sheet has no `# defaults: 2` line either, each of these values takes the role's step 5 default:\n  - `claudeAgent/claude-fable-5-1`, with any options, in `bug-fix`, `perf-issue`, or `hillclimb`.\n  - `claudeAgent/claude-opus-5-5`, with any options, in `swarm workers`.\n  - In a panel role (`arena runners`, `arena cross-judge pool`, `interrogate reviewers`), a list of exactly `claudeAgent/claude-opus-5-5`, `codex/gpt-6.1-sol`, and `grok/grok-4.7`, with any options, in any order.\n\nEvery other value is the user's choice and stays, including every `inherit-parent` or `auto` value.",
+      "rationale": "The sheet: upstream's migration of old defaults in T3 entries. The `# defaults: 2` branch matches the defaults t3-pstack 2.0 through 2.2 wrote, since a T3 sheet never held a Cursor slug, so a Grok entry outside that three-entry panel stays"
+    },
+    {
+      "pattern": "So `medium` turns `claude-opus-5-5-xhigh-fast` into `claude-opus-5-5-high-fast` and `claude-opus-5-5-high-fast` into `claude-opus-5-5-medium-fast`, and `small` turns them into `claude-opus-5-5-medium-fast` and `claude-opus-5-5-low-fast`. Opus 5.5 always runs its `-fast` slug, so every Opus 5.5 value ends in `-fast`. Fable 5.2 and Gemini have no fast slug, so never write one. Gemini 4 Neon slugs run from `low` to `xhigh` with no `max` or `fast` slug, so its seat runs at `gemini-4-neon-xhigh`, its top slug. A Gemini 4 Neon entry in a panel role takes its own target, `xhigh` moved by the budget, so `large` keeps `gemini-4-neon-xhigh`, `medium` writes `gemini-4-neon-high`, and `small` writes `gemini-4-neon-medium`.",
+      "files": "^skills/setup-pstack/SKILL\\.md$",
+      "replacement": "So `medium` turns `effort=xhigh` into `effort=high` and `effort=high` into `effort=medium`, and `small` turns them into `effort=medium` and `effort=low`. Opus 5.5 runs at standard speed, so never write `fastMode`, which on T3 is a priced fast mode. Claude lists no `fastMode` for Fable 5.2, and no provider lists a speed option for a Gemini model, so never write one. Gemini 4 Neon's reasoning levels run from `low` to `xhigh` with no `max`, so its seat runs at `xhigh`, its top level. A Gemini 4 Neon entry in a panel role takes its own target, `xhigh` moved by the budget, so `large` keeps `thought_level=xhigh` on Antigravity, `medium` writes `thought_level=high`, and `small` writes `thought_level=medium`.",
+      "rationale": "The sheet: a T3 entry carries its reasoning as an option, not a slug suffix. Cursor's -fast slug maps to the plain T3 model, because Claude's fastMode is a priced fast mode, not the same thing. Antigravity and OpenCode list only a reasoning option for their Gemini models, and Antigravity 1.5 lists thought_level low to xhigh for Gemini 4 Neon"
+    },
+    {
+      "pattern": "with `alwaysApply: true`, the `# defaults: 3` line,",
+      "files": "^skills/setup-pstack/SKILL\\.md$",
+      "replacement": "with the `# defaults: 3` line,",
+      "rationale": "The sheet: a Markdown file, not an always-applied rule"
+    },
+    {
+      "pattern": "### 5. Write the rule\n",
+      "replacement": "### 5. Write the sheet\n",
+      "rationale": "The sheet: names the step the generator stamps the sheet block under",
+      "files": "^skills/setup-pstack/SKILL\\.md$"
+    },
+    {
+      "pattern": "```\n---\ndescription: pstack per-role model choices (overrides skill defaults)\nalwaysApply: true\n---\n",
+      "replacement": "```markdown\n",
+      "rationale": "The sheet: opens the fence the generator stamps with the sheet from models.json, in place of upstream's rule",
+      "files": "^skills/setup-pstack/SKILL\\.md$"
+    },
+    {
       "pattern": "and mention once that a Custom Mode keeps it on.",
       "replacement": "and mention once that starting each task with `/poteto-mode` keeps it on.",
       "rationale": "Custom Modes are Cursor UI (t3-tools Per-skill notes: poteto-help)",
@@ -55,8 +91,8 @@
       "files": "^skills/poteto-help/SKILL\\.md$"
     },
     {
-      "pattern": "pstack is built for Cursor, and it also installs in Claude Code with `/plugin marketplace add cursor/plugins`, then `/plugin install pstack@cursor-plugins`. There, each command takes a `pstack:` prefix, such as `/pstack:poteto-mode`. The [Claude Code adapter](../../docs/harness/claude-code.md) maps the Cursor names, and a step that needs a Cursor-only feature, such as Bugbot or Automations, is skipped with a one-line note.\n\nOther tools can read the skills, because they use the Agent Skills format. But most workflow skills, including `/poteto-mode`, `/how`, `/why`, and `/teach`, spawn Cursor subagents with per-role models, and Custom Modes and `/loop` are Cursor features, so those parts may not work there.",
-      "replacement": "t3-jstack is pstack rewritten for T3 Code, and it installs in Claude Code and Codex with `npx -y github:jtaroreh/t3-jstack install`.\n\nIts workflow skills, including `/poteto-mode`, `/how`, `/why`, and `/teach`, dispatch subagents through T3's `delegate_task` with per-role models, so those parts need a T3 thread.",
+      "pattern": "pstack is built for Cursor, and it also installs in Claude Code with `/plugin marketplace add cursor/plugins`, then `/plugin install pstack@cursor-plugins`. There, each command takes a `pstack:` prefix, such as `/pstack:poteto-mode`. The [Claude Code adapter](../../docs/harness/claude-code.md) maps the Cursor names, and a step that needs a Cursor-only feature, such as Bugbot or Automations, is skipped with a one-line note.\n\nOther tools can read the skills, because they use the Agent Skills format. But most workflow skills, including `/poteto-mode`, `/how`, and `/teach`, spawn Cursor subagents, some with per-role models, and Custom Modes and `/loop` are Cursor features, so those parts may not work there.",
+      "replacement": "t3-jstack is pstack rewritten for T3 Code, and it installs in Claude Code and Codex with `npx -y github:jtaroreh/t3-jstack install`.\n\nIts workflow skills, including `/poteto-mode`, `/how`, and `/teach`, dispatch subagents through T3's `delegate_task`, some with per-role models, so those parts need a T3 thread.",
       "rationale": "states where the port runs and how it installs (Precedence)",
       "files": "^skills/poteto-help/SKILL\\.md$"
     },
@@ -157,130 +193,146 @@
       "rationale": "T3 renders a Markdown image whose path ends in a video extension as an inline player, so the reply embeds the video that way"
     },
     {
+      "pattern": "- Starting any agent, whether a Task subagent or a Project worker →",
+      "files": "^skills/poteto-mode/SKILL\\.md$",
+      "replacement": "- Starting any agent with `delegate_task` →",
+      "rationale": "Tool actions: Dispatch. T3 has no Cursor Projects, so every agent poteto-mode starts is a delegate_task child"
+    },
+    {
+      "pattern": "`Read <path>/worker.md before anything else.`",
+      "replacement": "`Read <path>/worker.md before anything else. If that file is missing here, read skills/poteto-mode/worker.md in this host's t3-jstack plugin under ${CLAUDE_CONFIG_DIR:-~/.claude}/plugins/ or ${CODEX_HOME:-~/.codex}/plugins/.`",
+      "rationale": "A delegate_task child can run on another provider's host, whose t3-jstack lives in its own config home, or on another machine where the parent's absolute path does not exist, so the pointer names where the child finds its own copy"
+    },
+    {
+      "pattern": ", with `<path>` the absolute path of the folder that holds this file.",
+      "files": "^skills/poteto-mode/worker\\.md$",
+      "replacement": ", with `<path>` the absolute path of the folder that holds this file.\n- On T3 your kickoff is a `delegate_task` brief, and you are a leaf. Do the work yourself, and start no agent unless your kickoff names one. Never call `watch_pull_request`. Report a wait on a PR to the agent that started you.",
+      "rationale": "Squares worker.md with poteto-mode's Dispatch on T3: a delegate_task child is a leaf unless its brief names its subagents, and a T3 child never watches a PR"
+    },
+    {
       "pattern": "Bundled skills live at `../<name>/SKILL.md` from this file, so put this file's absolute path in every `poteto-agent` prompt.",
       "files": "^skills/poteto-mode/SKILL\\.md$",
       "replacement": "Bundled skills live at `../<name>/SKILL.md` from this file, so put this file's absolute path in every `poteto-agent` prompt.\n\nOn Codex, read this file whole before acting, in a shell call of its own with `max_output_tokens: 10000`. A smaller output budget cuts lines out of its middle. If a read of it shows `tokens truncated`, read it again that way.",
       "rationale": "Codex's model picks a shell read's output budget, often 3000 to 6000 tokens for a SKILL.md, and Codex 0.162.1 then cuts the middle of anything longer, which here is the Subagents section that holds the T3 dispatch rules. The head of a cut read survives, so the instruction sits there. tests/agent-skills.test.mjs keeps the file inside the 10000-token budget it names."
     },
     {
-      "pattern": "- About to `AskQuestion` on a",
-      "replacement": "- About to ask the user a question on a",
-      "rationale": "the rule is about asking, not the tool",
-      "files": "^skills/poteto-mode/SKILL\\.md$"
-    },
-    {
+      "pattern": "open its steps at `playbooks/<title>.md`, with the title in kebab case.",
       "files": "^skills/poteto-mode/SKILL\\.md$",
-      "pattern": "- Contested design → the **interrogate** skill (multi-model adversarial) before shipping.",
-      "replacement": "- Contested design → the **interrogate** skill (multi-model adversarial) before shipping.\n- A Bug fix, Feature, or Refactoring diff → the **interrogate** skill with the `interrogate reviewers` panel before Opening a PR. Skip it only for a mechanical change, such as a rename or a dependency bump, and say so in the reply. Only findings under interrogate's Act on block, `warning` correctness findings included. A nit, or an edge case that cannot occur in practice, never blocks: batch accepted nits into one final fix run or drop them, and give each dismissal its reason. Round 1 reviews the whole change, and each later round reviews only the fix diff. After every fix round, a `feature, refactoring` delegate runs the real artifact and reports `pass`, `fail`, or `could not run` with its evidence. `fail` blocks like an Act on finding. `could not run` is not a pass and starts no fix, so report it. After three fix rounds, stop and report the open findings, what kind of failure they suggest, and a recommendation.",
-      "rationale": "Playbooks: Bug fix, Feature, Refactoring and Review loop (t3-pstack 1.0.1 and 1.0.6: a cross-family review gate with a severity gate and a three-round cap)"
+      "replacement": "open its steps at `playbooks/<title>.md` from this file (`skills/poteto-mode/playbooks/<title>.md`), with the title in kebab case.",
+      "rationale": "Codex agents that read a playbook in one shell call with sibling skills give it the skills/ base that `../<name>/SKILL.md` names, and open skills/playbooks/<title>.md, which does not exist (#71, by @adryanev). The path gets its base the way bundled skills do, and the parenthetical is a suffix that holds in the plugin cache and in a repo checkout."
     },
     {
-      "pattern": "Agent-facing prose also follows the **create-skill** skill (Cursor's built-in for authoring SKILL.md files).",
-      "replacement": "Agent-facing prose also follows the harness's skill-authoring skill (`skill-creator` where installed, else the Agent Skills format).",
-      "rationale": "create-skill is a Cursor built-in; Codex ships skill-creator",
-      "files": "^skills/poteto-mode/SKILL\\.md$"
-    },
-    {
-      "pattern": "- Shipping UI / IDE / CLI → the matching control skill. `cursor-team-kit` publishes `control-cli` (CLIs and TUIs) and `control-ui` (browser / Electron / web UIs).",
+      "pattern": "- Shipping UI / IDE / CLI → `control-ui` or `control-cli` from `cursor-team-kit`.",
       "replacement": "- Shipping UI / IDE / CLI → the matching control skill. That is the project's verify skill when it has one (`/create-verification-skill` makes one). Otherwise web UIs run through T3's `preview_*` tools, simulators through T3's `device_*` tools, and CLIs and TUIs through their own commands. The evidence is the artifact, such as a `preview_snapshot` saved with `save: true`, a recording, or the real output.",
       "rationale": "UI evidence",
       "files": "^skills/poteto-mode/SKILL\\.md$"
     },
     {
-      "pattern": "(`playbooks/babysit.md`), not Cursor's built-in babysit skill, whose description matches the same words.",
-      "replacement": "(`playbooks/babysit.md`).",
-      "rationale": "no competing built-in babysit on T3",
-      "files": "^skills/poteto-mode/SKILL\\.md$"
-    },
-    {
-      "pattern": "**Use `subagent_type: \"poteto-agent\"` for any subagent you spawn inside a playbook step**",
-      "replacement": "**Brief any subagent you spawn inside a playbook step as a `poteto-agent`**",
-      "rationale": "persona by brief (Subagent policy)",
-      "files": "^skills/poteto-mode/SKILL\\.md$"
-    },
-    {
-      "pattern": "set their own `subagent_type` for diverse-model review.",
-      "replacement": "set their own brief and role for diverse-model review.",
-      "rationale": "persona by brief (Subagent policy)",
-      "files": "^skills/poteto-mode/SKILL\\.md$"
-    },
-    {
-      "pattern": "**Defaults for every `Task` call.** `run_in_background: true`, agent mode (readonly strips MCP), file pointers not inlined context, explicit model per role",
-      "replacement": "**Defaults for every `delegate_task` call.** `mode: \"async\"`, full tool access (a read-only child gets \"inspect only, change no file\" in its brief), file pointers not inlined context, an explicit `target` per role",
-      "rationale": "Tool actions: Dispatch; Subagent policy (readonly)",
-      "files": "^skills/poteto-mode/SKILL\\.md$"
-    },
-    {
+      "pattern": "the **Babysit** playbook, not Cursor's built-in babysit skill.",
       "files": "^skills/poteto-mode/SKILL\\.md$",
-      "pattern": "Use fast mode only when the job is urgent,",
-      "replacement": "Use fast mode, the provider's speed option (`fastMode=true` on Claude, a fast `serviceTier` such as `priority` on Codex), only when the job is urgent,",
-      "rationale": "#613 per-job effort: a T3 entry carries its reasoning and speed as options, not as slug suffixes (The sheet)"
+      "replacement": "the **Babysit** playbook.",
+      "rationale": "T3 hosts ship no built-in babysit skill"
     },
     {
+      "pattern": "**Use `subagent_type: \"poteto-agent\"` for any subagent you spawn directly inside a playbook step.**",
       "files": "^skills/poteto-mode/SKILL\\.md$",
-      "pattern": "Otherwise use standard speed, the same slug without `-fast`.",
-      "replacement": "Otherwise use standard speed, the entry without that option.",
-      "rationale": "#613 per-job effort: a T3 entry carries its reasoning and speed as options, not as slug suffixes (The sheet)"
+      "replacement": "**Brief any subagent you spawn directly inside a playbook step as a `poteto-agent`.**",
+      "rationale": "Subagent policy: on T3 a persona is a delegate_task brief, not an agent type"
     },
     {
+      "pattern": "set their own `subagent_type`. Respect it.",
       "files": "^skills/poteto-mode/SKILL\\.md$",
-      "pattern": "Verification is the exception and stays on the `swarm workers` model and speed (`grok-4.7-xhigh-fast` by default).",
-      "replacement": "Verification is the exception and stays on the `swarm workers` model and speed (default in the **swarm** skill's Models section).",
-      "rationale": "#613 per-job effort: a T3 entry carries its reasoning and speed as options, not as slug suffixes (The sheet)"
+      "replacement": "set their own brief and role. Respect them.",
+      "rationale": "Subagent policy: on T3 a routed skill sets a delegate_task brief and role, not an agent type"
     },
     {
+      "pattern": "**Defaults for every `Task` call.** `run_in_background: true`, agent mode (readonly strips MCP), file pointers not inlined context, and an explicit model per role, Project workers included.",
       "files": "^skills/poteto-mode/SKILL\\.md$",
-      "pattern": "Change only the effort level and whether the slug is fast,",
-      "replacement": "Change only the entry's reasoning option (`effort` on Claude, `reasoningEffort` on Codex and Grok) and its speed option,",
-      "rationale": "#613 per-job effort: a T3 entry carries its reasoning and speed as options, not as slug suffixes (The sheet)"
+      "replacement": "**Defaults for every `delegate_task` call.** `mode: \"async\"`, full tool access (a read-only child gets \"inspect only, change no file\" in its brief), file pointers not inlined context, and an explicit `target` per role.",
+      "rationale": "Tool actions: Dispatch; Subagent policy (readonly). T3 has no Cursor Projects, so every started agent is a delegate_task child"
     },
     {
+      "pattern": "so omit `model` and spawn `generalPurpose`, because `poteto-agent` defaults to Opus 5.5.",
       "files": "^skills/poteto-mode/SKILL\\.md$",
-      "pattern": "If the family has no slug at that level and speed, use its nearest slug.",
-      "replacement": "If the model has no value at that level, or no speed option, use its nearest one in `orchestrator_capabilities`.",
-      "rationale": "#613 per-job effort: a T3 entry carries its reasoning and speed as options, not as slug suffixes (The sheet)"
+      "replacement": "so omit `target`.",
+      "rationale": "On T3 a poteto-agent is a brief that reads its agent file, and that file pins no model, so an inherit-parent role omits target and keeps the brief"
     },
     {
+      "pattern": "so omit `model` and spawn `generalPurpose`",
+      "replacement": "so omit `target`",
+      "rationale": "inherit-parent omits delegate_task's target; a T3 child has no agent type to switch"
+    },
+    {
+      "regex": "- Code, prose, and judgment: `(?:claude|gpt|grok|gemini|composer)-[^`]+`\\.",
       "files": "^skills/poteto-mode/SKILL\\.md$",
-      "pattern": "rejects the adjusted slug, do not try another adjusted slug.",
-      "replacement": "rejects the adjusted entry, do not try another adjusted entry.",
-      "rationale": "#613 per-job effort: a T3 entry carries its reasoning and speed as options, not as slug suffixes (The sheet)"
+      "replacement": "- Code, prose, and judgment: each role's entry in [Models](#models).",
+      "rationale": "Model names: T3 defaults live in models.json"
     },
     {
-      "regex": "Defaults `(?:claude|gpt|grok|gemini|composer)-[^`]+` for code, `(?:claude|gpt|grok|gemini|composer)-[^`]+` for prose and judgment",
-      "replacement": "Role defaults in [Models](#models)",
-      "rationale": "defaults come from the stamped Models section (Model names)",
+      "regex": "- Trivial mechanical edits: `(?:claude|gpt|grok|gemini|composer)-[^`]+`\\.",
+      "files": "^skills/poteto-mode/SKILL\\.md$",
+      "replacement": "- Trivial mechanical edits: the `swarm workers` entry in the **swarm** skill's Models section.",
+      "rationale": "Model names: T3 defaults live in models.json"
+    },
+    {
+      "regex": "- Diverse review and design panels: one runner each on `(?:claude|gpt|grok|gemini|composer)-[^`]+`(?:(?:,| and|, and) `(?:claude|gpt|grok|gemini|composer)-[^`]+`)+\\.",
+      "files": "^skills/poteto-mode/SKILL\\.md$",
+      "replacement": "- Diverse review and design panels: one runner each on the panel entries in the **arena** skill's Models section.",
+      "rationale": "Model names: T3 defaults live in models.json"
+    },
+    {
+      "pattern": "and set the level the job needs.",
+      "files": "^skills/poteto-mode/SKILL\\.md$",
+      "replacement": "and set the level the job needs with the entry's reasoning option (`effort` on Claude, `reasoningEffort` on Codex and Grok, `thought_level` on Antigravity).",
+      "rationale": "The sheet: a T3 entry carries its reasoning level as a provider option, whose ID differs per provider"
+    },
+    {
+      "pattern": "Opus 5.5 always runs its `-fast` slug.",
+      "files": "^skills/poteto-mode/SKILL\\.md$",
+      "replacement": "Opus 5.5 runs at standard speed, so leave out `fastMode`, which on T3 is a priced fast mode.",
+      "rationale": "Cursor's -fast slug maps to the plain T3 model at the same effort, because Claude's fastMode is a priced fast mode, not the same thing"
+    },
+    {
+      "regex": "Verification always runs on the `swarm workers` model, `(?:claude|gpt|grok|gemini|composer)-[^`]+` by default\\.",
+      "files": "^skills/poteto-mode/SKILL\\.md$",
+      "replacement": "Verification always runs on the `swarm workers` entry (default in the **swarm** skill's Models section).",
+      "rationale": "Model names: T3 defaults live in models.json"
+    },
+    {
+      "pattern": "A Gemini seat runs at `gemini-4-neon-xhigh` unless its line names another level.",
+      "files": "^skills/poteto-mode/SKILL\\.md$",
+      "replacement": "A Gemini seat runs at an `xhigh` reasoning level unless its line names another level.",
+      "rationale": "The sheet: a Gemini entry's level is its provider's reasoning option (thought_level on Antigravity, variant on OpenCode), not a slug suffix. A literal pattern, so a new upstream level fails the sync instead of keeping this one"
+    },
+    {
+      "pattern": "If the Task tool rejects a slug, never pass it again. Fall back to the role's line or default, then the calling skill's fallback, then the closest valid slug of the same family, then omit `model`.",
+      "files": "^skills/poteto-mode/SKILL\\.md$",
+      "replacement": "If `delegate_task` rejects an entry, never pass it again. Fall back to the role's line or default, then the calling skill's fallback, then another target of the same family from `orchestrator_capabilities`, then omit `target`.",
+      "rationale": "Tool actions: Dispatch (a rejected target falls back to another target of its family that orchestrator_capabilities lists)"
+    },
+    {
+      "pattern": "If the rule has no `# defaults: 3` line, an older setup wrote it.",
+      "replacement": "If the model sheet has no `# defaults: 3` line, an older setup wrote it.",
+      "rationale": "the T3 sheet replaces the Cursor rule (The sheet)",
       "files": "^skills/poteto-mode/SKILL\\.md$"
     },
     {
-      "regex": "strongest judgment model \\(`(?:claude|gpt|grok|gemini|composer)-[^`]+`\\)",
-      "replacement": "strongest judgment model (the `hardest tasks` default in [Models](#models))",
-      "rationale": "defaults come from the stamped Models section (Model names)",
-      "files": "^skills/poteto-mode/SKILL\\.md$"
-    },
-    {
-      "pattern": "Per-role lines in the `/setup-pstack` rule override",
-      "replacement": "Per-role lines in the model sheet that `/setup-jstack` writes override",
-      "rationale": "The sheet",
-      "files": "^skills/poteto-mode/SKILL\\.md$"
-    },
-    {
-      "pattern": "Resume, message, or queue a follow-up on an existing subagent only when",
+      "pattern": "Resume an existing subagent only when",
       "replacement": "Send a follow-up to an existing child (`t3_thread_send` to its `childThreadId`) only when",
       "rationale": "Tool actions: Continue a subagent",
       "files": "^skills/poteto-mode/SKILL\\.md$"
     },
     {
-      "pattern": "Interrupt-chained resumes silently drop directives, so fire a fresh subagent with consolidated scope rather than trusting a \"done\" summary.",
-      "replacement": "Interrupt-chained resumes silently drop directives, so fire a fresh subagent with consolidated scope rather than trusting a \"done\" summary.\n\n**Dispatch on T3.** Every subagent is a `delegate_task` call from the chat that runs the playbook, same model family included, so every child shows up in T3. Give each call its own `clientRequestId`, stable across retries of that call, and keep each returned `taskId`. A child's completion wakes this thread, so end the turn instead of polling, and call `task_status` only when a result is needed mid-turn. `task_cancel` stops a child, and `task_status` confirms it stopped. A child gets only its brief, never your context, so pass absolute paths. `<plugin root>` is the absolute path of the directory that holds this plugin's `skills/` and `agents/`. A persona (`poteto-agent`, `comment-sicko`, `thermo-nuclear-review-subagent`, `thermo-nuclear-code-quality-review-subagent`) is a brief that opens with \"Read `<plugin root>/agents/<name>.md` in full and act as it says\", and a `poteto-agent` brief also names this file's absolute path.\n\nA child starts in your checkout. One that writes gets its own worktree, created with `git worktree add` from `HEAD` so it builds on your branch's commits. The brief names that absolute path as the only place it writes, and tells it to run every command there (`workdir` on Codex) and to edit by absolute path. Record your own `git status --porcelain` before you dispatch, check after the result that it is unchanged, then remove the worktree and its branch. A step a playbook says to delegate goes to `delegate_task` on that role's sheet entry, not into your own tool calls, unless you state a reason such as a step too small to brief. A research delegate no role names runs on the `how explorer` entry. A model's family is the first segment of its ID's last `/` part, such as `claude`, `gpt`, or `grok`, whatever provider instance serves it, and your own family is the one in `orchestrator_capabilities`' `inheritedModel`. A rejected target runs on another target of the same family from `orchestrator_capabilities`, and you say so. A required review with no reviewer from another family stays `BLOCKED: independent review`.\n\nEnd every reply that ran a playbook with a dispatch ledger: one line per delegated step, naming the role and the `providerInstanceId/model` it ran on, or `in-thread: <reason>`.",
-      "rationale": "inserts the T3 dispatch policy at the end of the Subagents section (Tool actions; Subagent policy)",
+      "pattern": "its checkout, its uncommitted changes, or a process it still runs.",
+      "replacement": "its checkout, its uncommitted changes, or a process it still runs.\n\n**Dispatch on T3.** Every subagent is a `delegate_task` call from the chat that runs the playbook, same model family included, so every child shows up in T3. When you are a `delegate_task` child, you are a leaf. Do the work yourself, and start no subagent unless your brief names one. Give each call its own `clientRequestId`, stable across retries of that call, and keep each returned `taskId`. A child's completion wakes this thread, so end the turn instead of polling, and call `task_status` only when a result is needed mid-turn. `task_cancel` stops a child, and `task_status` confirms it stopped. A child gets only its brief, never your context, so pass absolute paths. `<plugin root>` is the absolute path of the directory that holds this plugin's `skills/` and `agents/`. A persona (`poteto-agent`, `comment-sicko`, `thermo-nuclear-review-subagent`, `thermo-nuclear-code-quality-review-subagent`) is a brief whose next line after the worker.md pointer is \"Read `<plugin root>/agents/<name>.md` in full and act as it says\", and a `poteto-agent` brief also names this file's absolute path. Where a skill says a brief opens with a persona's read, the worker.md pointer still comes first.\n\nA child starts in your checkout, which suits one writer while you write nothing. A writer that runs beside other writers or your own edits gets `isolation: \"worktree\"`, and T3 gives it a new worktree and branch from your thread's checkout at its `HEAD` commit. Commit what it builds on first, because uncommitted edits stay behind. A child that must start from another commit, such as a PR head or fresh trunk, gets `isolation: \"worktree\"` even when it only reads. Its brief names that commit or ref, and before anything else the child runs `git fetch` and moves its own branch there with `git reset --hard`. T3 can rename that branch during the run, so the brief tells the child to end its reply with the output of `pwd`, `git branch --show-current`, and `git rev-parse HEAD`. After review, bring its commits onto your branch with `git merge <branch>`, which fast-forwards when your branch has not moved. A PR opens only from a T3 thread's branch, yours or that of a child that owns the PR. In a repo with no commit yet, `delegate_task` refuses the worktree with `Unable to resolve the parent checkout commit`, so commit first. When this thread's project is not a git checkout, which gets the same refusal, when your work lives in a checkout other than the one `t3_worktree_status` names, or when you copy uncommitted changes into the child's worktree, create that worktree with `git worktree add` from `HEAD` instead. Remove that worktree and its branch after the result. A child sent into a worktree it does not own, one you made this way or one a finished worker left, keeps `isolation: \"shared\"`. Its brief names that absolute path as the only place it writes, and tells it to run every command there (`workdir` on Codex) and to edit by absolute path. Record your own `git status --porcelain` before you dispatch a writer to another checkout, and check after the result that it is unchanged. A step a playbook says to delegate goes to `delegate_task` on that role's sheet entry, not into your own tool calls, unless you state a reason such as a step too small to brief. A research delegate no role names omits `target`, so it runs on the parent model. A model's family is the first segment of its ID's last `/` part, such as `claude`, `gpt`, or `gemini`, whatever provider instance serves it, except that Fable (`claude-fable-*`) is its own family, and your own family is the one in `orchestrator_capabilities`' `inheritedModel`. A rejected target runs on another target of the same family from `orchestrator_capabilities`, and you say so. `orchestrator_capabilities` lists a short set of models per provider, and its `search` finds the others. A required review with no reviewer from another family stays `BLOCKED: independent review`.\n\nEnd every reply that ran a playbook with a dispatch ledger: one line per delegated step, naming the role and the `providerInstanceId/model` it ran on, or `in-thread: <reason>`.",
+      "rationale": "inserts the T3 dispatch policy at the end of the Subagents section, after the Fresh subagents paragraph (Tool actions; Subagent policy). A delegate_task child keeps delegate_task, so the leaf sentence stops the session-start routing from sending a child into a playbook's fan-out (#21). A writer gets T3's worktree isolation, which starts from the thread checkout's HEAD commit and refuses a thread whose project is not a git checkout or has no commit, so git worktree add stays only for those (#50). A child whose worktree gets uncommitted changes copied in, as interrogate's adversaries do, needs that fallback too, because isolation leaves uncommitted edits out. Isolation always starts at the parent's HEAD, so a child bound for a PR head or fresh trunk fetches and resets its own branch there, a child sent into a worktree it does not own works there by path, and the report names pwd so a parent learns a worktree it could not name at spawn (Cursor Bugbot on #68). A research delegate no role names, such as how's one explainer or recall's investigators, runs on the parent model, as upstream's Task call without a model does. The family rule keeps upstream's Fable exception. A persona brief keeps upstream's worker.md pointer as its first line",
       "files": "^skills/poteto-mode/SKILL\\.md$"
     },
     {
-      "pattern": "from a transcript, cloud-agent URL, or pushed branch.",
-      "replacement": "from a transcript, a T3 thread, or pushed branch.",
-      "rationale": "no cloud agents on T3",
-      "files": "^skills/poteto-mode/SKILL\\.md$"
+      "regex": "\\nmodel: (?:claude|gpt|grok|gemini|composer)-[^\\n]+",
+      "files": "^agents/poteto-agent\\.md$",
+      "replacement": "",
+      "rationale": "Upstream pins poteto-agent to a Cursor slug. On T3 a poteto-agent is a delegate_task brief whose target sets the model, Claude Code would send the slug to its API on a native spawn of the registered agent, and Codex registers no plugin agents"
     },
     {
       "pattern": "Substituting `generalPurpose` skips that read and drifts.",
@@ -354,14 +406,10 @@
       "files": "^skills/no-comments/SKILL\\.md$"
     },
     {
-      "pattern": "Every spawn is a Task subagent with `subagent_type: generalPurpose` and `readonly: true`.",
-      "replacement": "Every spawn is a `delegate_task` child with `role: \"research\"` and a brief that says to inspect only and change no file.",
-      "rationale": "Per-skill notes: how"
-    },
-    {
-      "pattern": "Set `model` to that line's value, or to the default if the rule or the line is missing. Leave `model` unset when the value is `auto` or `inherit-parent`. If the Task tool rejects a slug, use the default and say so. If it rejects the default, use the closest valid slug of the same family from its error message.",
-      "replacement": "Set `target` from that line's entry, or from the default if the sheet or the line is missing. Leave `target` unset when the value is `auto` or `inherit-parent`. If `delegate_task` rejects an entry, use the default and say so. If it rejects the default, use another target of the same family from `orchestrator_capabilities`.",
-      "rationale": "The sheet; Subagent policy (rejected target)"
+      "pattern": "Spawn one Task subagent with `subagent_type: generalPurpose` and `readonly: true` that explores and explains in one pass.",
+      "replacement": "Spawn one `delegate_task` child with `role: \"research\"` that explores and explains in one pass. Leave `target` unset, so it runs on this chat's model.",
+      "rationale": "Per-skill notes: how. Upstream's Task call names no model, so the child runs on the parent model, and its brief already says it has read-only access",
+      "files": "^skills/how/SKILL\\.md$"
     },
     {
       "pattern": "If the Task tool rejects a slug, use the default and say so. If it rejects the default, use the closest valid slug of the same family from its error message.",
@@ -369,54 +417,10 @@
       "rationale": "Subagent policy (rejected target)"
     },
     {
-      "pattern": "Every spawn is `generalPurpose` with `readonly: false` (agent mode). **Do not use readonly/Ask mode.** It strips MCP access, which disables the MCP-backed investigators and the synthesizer's citation spot-checks.",
-      "replacement": "Every spawn is a `delegate_task` child with full tool access, MCP included, which the MCP-backed investigators and the synthesizer's citation spot-checks need.",
-      "rationale": "Per-skill notes: why"
-    },
-    {
-      "pattern": "Before spawning investigators, list the available MCPs from the Cursor environment. Use the available-tools map when present. Otherwise inspect the `mcps/` directory Cursor exposes for enabled MCP servers.",
-      "replacement": "Before spawning investigators, list the MCP servers whose tools this session exposes.",
-      "rationale": "Per-skill notes: why"
-    },
-    {
-      "pattern": "`model`: the `why investigators` line",
-      "replacement": "`target`: the `why investigators` line",
-      "rationale": "The sheet"
-    },
-    {
-      "pattern": "`model`: the `why synthesizer` line",
-      "replacement": "`target`: the `why synthesizer` line",
-      "rationale": "The sheet"
-    },
-    {
-      "pattern": "Before fanning out, find this conversation's transcript in the `agent-transcripts/` directory the system prompt names. Do not glob across `~/.cursor/projects/*/`. That crosses workspace boundaries and reads private chats from unrelated projects.",
-      "replacement": "Before fanning out, find this conversation's own transcript where this thread's host keeps it. Do not search other projects' transcripts. That crosses workspace boundaries and reads private chats from unrelated projects.",
-      "rationale": "Transcripts (t3-pstack 1.0.13: the host's own transcript, found by session or thread ID)"
-    },
-    {
-      "pattern": "```bash\nls -t <agent-transcripts>/*.jsonl <agent-transcripts>/*/*.jsonl <agent-transcripts>/*/subagents/*.jsonl 2>/dev/null | head -10\n```\n\nThat covers the legacy flat (`<id>.jsonl`), current nested (`<id>/<id>.jsonl`), and subagent (`<parent>/subagents/<child>.jsonl`) layouts. For each candidate, read the first JSONL line. Take the file whose `message.content[0].text` contains the conversation's opening user prompt. If none matches, pass a tight digest of the session instead.",
-      "replacement": "On Claude Code, run the finder with this session's ID, this project's transcripts directory, and a fragment of the conversation's opening user prompt:\n\n```bash\nnode \"<plugin root>/skills/reflect/scripts/find-transcript.mjs\" --session \"$CLAUDE_CODE_SESSION_ID\" \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/<encoded-cwd>\" \"<opening prompt fragment>\"\n```\n\n`<plugin root>` is the directory that holds this plugin's `skills/`, and `<encoded-cwd>` is what `node -p 'process.cwd().normalize(\"NFC\").replace(/[^a-zA-Z0-9]/g, \"-\")'` prints in the directory Claude Code started in, which is that directory's physical path with every character other than an ASCII letter or digit turned into `-`. If the result is longer than 200 characters, Claude Code keeps the first 200 and appends `-` and a hash, so use the folder under `projects/` whose name starts with those 200 characters and that holds this session's transcript. With the session ID set, the finder prints this session's own transcript, and exits 1 when it does not exist, because a scan could return a sibling session that shares the opening prompt. Without it, the finder scans the flat, nested, and subagent layouts newest first and prints the first transcript whose opening typed prompt carries the fragment. Do not reimplement the scan by hand.\n\nOn Codex, pass this thread's ID, which Codex exports as `CODEX_THREAD_ID`, to the resolver, and never search by chat title or time:\n\n```bash\n\"<plugin root>/skills/poteto-mode/scripts/resolve-codex-transcript\" \"$CODEX_THREAD_ID\"\n```\n\nOn success it exits 0 and prints JSON whose `path` is the transcript. If either command exits non-zero, pass a tight digest of the session instead.",
-      "rationale": "Transcripts (t3-pstack 1.0.13: find-transcript.mjs on Claude Code, resolve-codex-transcript on Codex)"
-    },
-    {
-      "pattern": "One message, three `Task` calls, `subagent_type: generalPurpose`, agent mode (`readonly: false`). Reviewers need MCP access to look up the tickets, chat threads, and observability traces the transcript references, and readonly strips MCPs.",
-      "replacement": "One response, three `delegate_task` calls with `mode: \"async\"` and full tool access. Reviewers need MCP access to look up the tickets, chat threads, and observability traces the transcript references.",
-      "rationale": "Per-skill notes: reflect"
-    },
-    {
-      "pattern": "| Lens | Role line | Default `model` | Prompt template |",
-      "replacement": "| Lens | Role line | Default | Prompt template |",
-      "rationale": "The sheet"
-    },
-    {
-      "pattern": "Reviewers return findings in the `Task` response body.",
-      "replacement": "Reviewers return findings in their final message, which arrives as the `delegate_task` result.",
-      "rationale": "Tool actions: Wait"
-    },
-    {
-      "regex": "One `Task` call, `subagent_type: generalPurpose`, `model` from the `reflect judgment, divergent, synthesizer` line \\(default `(?:claude|gpt|grok|gemini|composer)-[^`]+`\\), agent mode \\(`readonly: false`\\)\\. It spot-verifies citations through MCP, and readonly strips MCPs\\.",
-      "replacement": "One `delegate_task` call with full tool access and `target` from the `reflect judgment, divergent, synthesizer` line (default in [Models](#models)). It spot-verifies citations through MCP.",
-      "rationale": "Per-skill notes: reflect"
+      "pattern": "Read the whole transcript.",
+      "files": "^skills/reflect/SKILL\\.md$",
+      "replacement": "Read this thread's whole transcript with `t3_thread_read` (`view: \"activity\"`, from its start with `afterPosition: -1`, then each `nextPosition`), with the thread ID that `t3_thread_configure` returns when called with no `threadId`.",
+      "rationale": "Per-skill notes: reflect. A T3 conversation is a thread, so reflect reads its own thread, tool calls included, rather than a host's transcript file. This retires the Claude Code finder and the Codex resolver reflect used before 0.15.43"
     },
     {
       "files": "^skills/reflect/SKILL\\.md$",
@@ -425,55 +429,33 @@
       "rationale": "harness skill dirs and plugin caches. Claude Code installs this plugin under $CLAUDE_CONFIG_DIR/plugins/cache/ (default ~/.claude) and Codex under $CODEX_HOME/plugins/cache/, Claude Code 2.1.310 reads user skills from $CLAUDE_CONFIG_DIR/skills (default ~/.claude/skills) and project skills from .claude/skills, and Codex 0.164 reads user skills from ~/.agents/skills and project skills from .agents/skills, not from .claude/skills"
     },
     {
-      "pattern": "(under `.cursor/skills/`, `~/.cursor/skills/`, or `~/.cursor/plugins/`), a `Task` prompt naming its path,",
-      "replacement": "(under a project or user skills directory such as `.claude/skills/` or `.agents/skills/`, or a plugin directory), a `delegate_task` brief naming its path,",
-      "rationale": "harness skill dirs; Tool actions: Dispatch"
+      "pattern": "Spawn each adversary as `generalPurpose`.",
+      "replacement": "Spawn each adversary as a `delegate_task` child with `role: \"review\"` and no persona brief.",
+      "rationale": "Per-skill notes: interrogate. Cursor's generalPurpose is the default agent with every tool, which on T3 is a delegate_task child whose brief names no persona. Adversaries run repros in their own worktrees, so the brief does not make them read-only"
     },
     {
-      "pattern": "Launch all reviewers in a single message with the Task tool,",
-      "replacement": "Launch all reviewers in a single response with `delegate_task`,",
-      "rationale": "Per-skill notes: interrogate"
-    },
-    {
-      "pattern": "Each reviewer gets `subagent_type: generalPurpose`, `readonly: true`, and `model` set to its configured entry, or its table default when there is no configured line. Omit `model` for an `auto` or `inherit-parent` entry, so that reviewer runs on the parent model.",
-      "replacement": "Each reviewer gets `role: \"review\"`, a brief that says to inspect only and change no file, and `target` set from its configured entry, or from its table default when there is no configured line. Omit `target` for an `auto` or `inherit-parent` entry, so that reviewer runs on the parent model.",
-      "rationale": "Per-skill notes: interrogate"
-    },
-    {
-      "pattern": "If the Task tool rejects a configured entry, run that reviewer on its family's table default and say so.",
-      "replacement": "If `delegate_task` rejects a configured entry, run that reviewer on another target of the same family from `orchestrator_capabilities` and say so.",
-      "rationale": "Subagent policy (rejected target)"
-    },
-    {
-      "pattern": "If it rejects a table default, spawn with the closest equivalent from the valid slugs in its error message (prefer the same family and reasoning tier),",
-      "replacement": "If it rejects a table default, spawn on the closest target of the same family from `orchestrator_capabilities` (prefer the same reasoning tier),",
-      "rationale": "Subagent policy (rejected target)"
-    },
-    {
-      "pattern": "If the Task tool rejects a configured entry, run that seat on its family's default and say so.",
-      "replacement": "If `delegate_task` rejects a configured entry, run that seat on another target of the same family from `orchestrator_capabilities` and say so.",
-      "rationale": "Subagent policy (rejected target)"
-    },
-    {
-      "pattern": "means the parent model, so omit `model` for it.",
-      "replacement": "means the parent model, so omit `target` for it.",
-      "rationale": "The sheet"
-    },
-    {
-      "pattern": "If it rejects a default, use the closest valid slug of the same family from its error message.",
-      "replacement": "If it rejects a default, use another target of the same family from `orchestrator_capabilities`.",
-      "rationale": "Subagent policy (rejected target)"
-    },
-    {
-      "pattern": "Spawn one readonly judge subagent on that model.",
-      "replacement": "Spawn one judge subagent on that model, briefed to inspect only and change no file.",
-      "rationale": "Subagent policy (readonly)"
-    },
-    {
+      "pattern": "If the Task tool rejects a slug, use the nearest valid slug of the same family or drop the seat, keep at least two runners, and say so.",
       "files": "^skills/arena/SKILL\\.md$",
-      "pattern": "Prefer a different model family from the parent's.",
-      "replacement": "Pick an entry whose model ran no candidate, so no model scores its own work, and among those prefer a different model family from the parent's. If every pool entry ran a candidate, say so in the reply and judge on the entry that ran the fewest.",
-      "rationale": "Per-skill notes: arena (t3-pstack 1.0.2: the cross-judge never scores its own candidate)"
+      "replacement": "If `delegate_task` rejects an entry, run that seat on another target of the same family from `orchestrator_capabilities` or drop it, keep at least two runners, and say so.",
+      "rationale": "Tool actions: Dispatch (a rejected target falls back to another target of its family that orchestrator_capabilities lists)"
+    },
+    {
+      "pattern": "If the Task tool rejects a slug, use the nearest valid slug of the same family, then the next such entry, or skip the judge, and say so.",
+      "files": "^skills/arena/SKILL\\.md$",
+      "replacement": "If `delegate_task` rejects an entry, use another target of the same family from `orchestrator_capabilities`, then the next such entry, or skip the judge, and say so.",
+      "rationale": "Tool actions: Dispatch (a rejected target falls back to another target of its family that orchestrator_capabilities lists)"
+    },
+    {
+      "pattern": "spawn one readonly judge from",
+      "files": "^skills/arena/SKILL\\.md$",
+      "replacement": "spawn one judge, briefed to inspect only and change no file, from",
+      "rationale": "Subagent policy (readonly): a read-only child gets a brief sentence"
+    },
+    {
+      "pattern": "If you do not know the parent's model, use the first real slug and say that the vendor check did not run.",
+      "files": "^skills/arena/SKILL\\.md$",
+      "replacement": "If `orchestrator_capabilities` names no `inheritedModel`, use the first real target and say that the vendor check did not run.",
+      "rationale": "T3 names the parent's model in orchestrator_capabilities' inheritedModel"
     },
     {
       "pattern": "For `auto` or `inherit-parent`, omit `model` so the workers run on the parent model.",
@@ -482,13 +464,19 @@
     },
     {
       "pattern": "Spawn all N workers in one message with `subagent_type: generalPurpose`, `environment: \"cloud\"`, `run_in_background: true`, and the step 3 model, left unset for `auto` or `inherit-parent`. Use `environment: \"local\"` only when the worker needs access to something on the user's computer.",
-      "replacement": "Spawn all N workers in one response as `delegate_task` calls with `mode: \"async\"` and the step 3 `target`, left unset for `auto` or `inherit-parent`. Every worker runs on this machine, so a worker that writes gets its own git worktree, named by absolute path in its brief as the only place it writes.",
-      "rationale": "Per-skill notes: swarm"
+      "replacement": "Spawn all N workers in one response as `delegate_task` calls with `mode: \"async\"` and the step 3 `target`, left unset for `auto` or `inherit-parent`. Every worker runs on this machine, so a worker that writes gets `isolation: \"worktree\"`, per poteto-mode's Dispatch on T3.",
+      "rationale": "Per-skill notes: swarm. A writing worker gets T3's worktree isolation (#50)"
     },
     {
       "pattern": "When a worker must start from a non-default pushed branch, pass `cloud_base_branch`.",
-      "replacement": "When a worker must start from a non-default branch, create its worktree from that branch.",
-      "rationale": "no cloud base branch on T3"
+      "replacement": "When a worker must start from a non-default branch, it starts from that branch's head commit, per poteto-mode's Dispatch on T3.",
+      "rationale": "no cloud base branch on T3. T3's worktree isolation starts every worktree from the parent's HEAD commit, so Dispatch on T3 gives a worker bound for another commit its own worktree, even when it only reads, and has it fetch and reset its own branch there"
+    },
+    {
+      "pattern": "Give each candidate its own output location (a git worktree where possible, otherwise `/tmp/arena-<slug>/candidate-<n>/`), per the **separate-before-serializing-shared-state** principle skill.",
+      "replacement": "Give each candidate its own output location (a git worktree where possible, otherwise `/tmp/arena-<slug>/candidate-<n>/`), per the **separate-before-serializing-shared-state** principle skill. On T3 that worktree comes from `isolation: \"worktree\"`, or from `git worktree add` where poteto-mode's Dispatch on T3 says so. T3 makes an isolated worktree only once the candidate starts, so its brief names its own worktree as its output location, and its reply names the path.",
+      "rationale": "Per-skill notes: arena. A candidate's worktree comes from T3's worktree isolation, not git worktree add (#50). interrogate reuses this step and copies the scope's uncommitted changes into each worktree, which Dispatch on T3 sends to git worktree add. Phase B passes each candidate its output path at spawn, which an isolated candidate's worktree does not have yet, so the reply carries it",
+      "files": "^skills/arena/SKILL\\.md$"
     },
     {
       "pattern": "Transcripts live at `~/.cursor/projects/<slug>/agent-transcripts/<uuid>/<uuid>.jsonl`, where `<slug>` is the workspace path with the leading slash dropped and each \"/\" turned into \"-\" (so `/Users/you/proj` becomes `Users-you-proj`). Every line is one chat message.",
@@ -504,6 +492,12 @@
       "pattern": "each citing the chat UUID.",
       "replacement": "each citing the thread ID.",
       "rationale": "Tool actions: Find an earlier conversation"
+    },
+    {
+      "pattern": "Spawn one investigator subagent per source, in agent mode because readonly strips MCP access,",
+      "replacement": "Spawn one investigator per source, each a `delegate_task` child with full tool access, MCP included,",
+      "rationale": "Subagent policy (readonly): a delegate_task child keeps its MCP tools, which the per-source investigators need",
+      "files": "^skills/recall/SKILL\\.md$"
     },
     {
       "pattern": "This skill orchestrates three others: an inline mining pass (see step 1), Cursor's built-in `create-skill` (authoring),",
@@ -531,13 +525,18 @@
       "rationale": "harness-specific question tool"
     },
     {
+      "pattern": "Prefer AskQuestion over free text.",
+      "replacement": "Prefer a structured multiple-choice question (`AskUserQuestion` on Claude Code, numbered options in plain text elsewhere) over free text.",
+      "rationale": "Cursor's question tool. setup-pstack is a fork whose text already asks this way, so the rule lets a conflict on its (a) or (c) paragraph be written for a person to resolve"
+    },
+    {
       "pattern": "For a new mode, use `.cursor/skills/<handle>/<handle>-mode/SKILL.md` when the repo has an established personal category for that handle. Otherwise default to `.cursor/skills/<handle>-mode/SKILL.md` in the project (or `~/.cursor/skills/<handle>-mode/` if the user prefers a personal skill).",
       "replacement": "For a new mode, use `<skills dir>/<handle>/<handle>-mode/SKILL.md` when the repo has an established personal category for that handle. Otherwise default to `<skills dir>/<handle>-mode/SKILL.md` in the project, or in the user's skills directory if the user prefers a personal skill. `<skills dir>` is `.claude/skills` on Claude Code and `.agents/skills` elsewhere.",
       "rationale": "harness-specific skill dirs"
     },
     {
       "pattern": "Read this run's transcript under the active workspace's `agent-transcripts/` directory (the system prompt names the path). Don't glob across `~/.cursor/projects/*/`. That reads unrelated private chats.",
-      "replacement": "Read this run's thread with `t3_thread_read` (`t3_thread_configuration` with no `threadId` returns its ID), and each child's thread by its `childThreadId`. Don't read other projects' threads. That reads unrelated private chats.",
+      "replacement": "Read this run's thread with `t3_thread_read` (`t3_thread_configure` with no `threadId` returns its ID), and each child's thread by its `childThreadId`. Don't read other projects' threads. That reads unrelated private chats.",
       "rationale": "Per-skill notes: show-me-your-work"
     },
     {
@@ -576,14 +575,14 @@
     {
       "files": "^skills/poteto-mode/playbooks/",
       "pattern": "Each owner is a Cursor cloud agent that builds, opens its PR",
-      "replacement": "Each owner is a top-level T3 thread that `t3_thread_launch` starts with `workspaceStrategy: {type: \"worktree\", baseRef, branch, startFromOrigin: false}` and a brief that names this playbook and this thread's ID, so the owner reports back with `t3_thread_send`. It builds, opens its PR",
-      "rationale": "Playbooks: Autopilot-full (each PR owner is a t3_thread_launch thread in its own worktree)"
+      "replacement": "Each owner is a `delegate_task` child with `mode: \"async\"` and `isolation: \"worktree\"` that starts from fresh trunk, per poteto-mode's Dispatch on T3. Its brief names this playbook and this thread's ID, so the owner reports back with `t3_thread_send`. It also tells the owner that it is not a leaf and starts the subagents its playbooks name, such as `/no-comments`'s Comment Sicko and show-me-your-work's cross-model review of the trail, because Dispatch on T3 makes a child a leaf unless its brief names its subagents. T3 gives a child no `watch_pull_request`, so the owner babysits in `drive` mode and reports a wait for a person to this thread, which watches that PR. It builds, opens its PR",
+      "rationale": "Playbooks: Autopilot-full. T3 starts a top-level thread only when the user asks for one, so each PR owner is a delegate_task child in its own T3 worktree, which task_status and task_cancel reach (#47, by @pb3975). A child is a leaf unless its brief names its subagents, so the owner's brief says in plain words that the owner is not a leaf and names the reviewers its playbooks start. 2.2.6 said only that the brief lets the owner delegate, and in a proof run the root wrote 'You are a leaf' into the owner's brief, so the owner ran Comment Sicko's pass itself and skipped the trail review. T3 gives a delegate_task child no watch_pull_request, so the root holds the watch an owner's wait for a person needs. Isolation starts at the root's HEAD, which need not be trunk, so the owner resets its own branch to fresh trunk"
     },
     {
       "files": "^skills/poteto-mode/playbooks/",
       "pattern": "Assume the VM dies.",
       "replacement": "Assume the owner's session dies.",
-      "rationale": "no cloud VMs on T3; an owner is a T3 thread"
+      "rationale": "no cloud VMs on T3; an owner is a delegate_task child"
     },
     {
       "files": "^skills/poteto-mode/playbooks/",
@@ -617,15 +616,9 @@
     },
     {
       "files": "^skills/poteto-mode/playbooks/",
-      "pattern": "re-reads both playbooks from trunk",
-      "replacement": "re-reads both playbooks from disk",
-      "rationale": "an installed plugin has no trunk; the playbooks' own files are on disk"
-    },
-    {
-      "pattern": "This playbook replaces Cursor's built-in babysit skill for these requests, so do not route there even though its description matches the same words. ",
-      "replacement": "",
-      "rationale": "no competing built-in babysit on T3",
-      "files": "^skills/poteto-mode/playbooks/"
+      "pattern": "Every loop tick prompt names this file",
+      "replacement": "Every `schedule_task` prompt names this file",
+      "rationale": "Cursor's /loop: on T3 each audit tick runs from a schedule_task prompt, per Autopilot-full step 6"
     },
     {
       "pattern": "In `check` mode pass `--status-only`.",
@@ -634,21 +627,15 @@
       "files": "^skills/poteto-mode/playbooks/"
     },
     {
-      "pattern": "Run `drive` and `background` under `/loop` in dynamic mode.",
-      "replacement": "Run `drive` as a loop inside the turn: run the watcher with `--timeout 540` and the shell's own timeout above 540 seconds and under the 600-second tool cap, act on its verdict, and run it again. Report and stop when the verdict's head SHA, kind, and reason have not changed for two hours, or after three hours in all. A `BLOCKER` with reason `review-required` or `merge-blocked` (exit 6) needs a person, so report it and stop the loop instead of rerunning the watcher. `review-required` is the wait for a human review below, and `merge-blocked`, a branch protection rule the watcher cannot name, goes back to the user. Run `background` by arming T3's `watch_pull_request` on the frontier and taking the watcher's verdict with `--timeout 180` at each natural pause. A wait for a human review is `watch_pull_request` and the end of the turn, because another account's review wakes the thread. Unwatch with `unwatch_pull_request` when babysitting stops. The watcher holds `READY` until accounts other than the PR author and the `gh` viewer have been quiet on the PR for `--settle` seconds (default 300) since the latest push, opening, or ready for review, and up to 30 minutes after that while an `eyes` reaction is open, so no per-bot wait rules are needed.",
-      "rationale": "Playbooks: Babysit drive and background; the watch-pr settle overlay (t3-pstack 1.0.5); the exit 6 merge gates from pstack-claude #95 (t3-pstack 2.0.0-rc.2)",
-      "files": "^skills/poteto-mode/playbooks/"
-    },
-    {
-      "pattern": "status comes from `scripts/watch-pr/watch-pr`.",
-      "replacement": "status comes from `<plugin root>/skills/poteto-mode/scripts/watch-pr/watch-pr`.",
-      "rationale": "a skill-relative path does not resolve from the project directory",
-      "files": "^skills/poteto-mode/playbooks/"
-    },
-    {
+      "pattern": "status comes from the mode's watcher at `scripts/watch-pr/watch-pr`.",
       "files": "^skills/poteto-mode/playbooks/",
-      "pattern": "(`scripts/watch-pr/watch-pr --queued-stack --stack-prs <bottom-to-top>`) under `/loop` until it reports `COMPLETE` at the ceiling.",
-      "replacement": "(`<plugin root>/skills/poteto-mode/scripts/watch-pr/watch-pr --queued-stack --stack-prs <bottom-to-top>`) as a loop inside the turn until it reports `COMPLETE` at the ceiling. Run it with `--timeout 540` and the shell's own timeout above 540 seconds and under the 600-second tool cap, check the ceiling after each return, and report and stop after three hours. `watch_pull_request` cannot stand in here, because it does not wake on a merge or on merge-queue state.",
+      "replacement": "status comes from the mode's watcher at `<plugin root>/skills/poteto-mode/scripts/watch-pr/watch-pr`. Run `drive` as a loop inside the turn: run the watcher with `--timeout 540` and the shell's own timeout above 540 seconds and under the 600-second tool cap, act on its verdict, and run it again. Report and stop when the verdict's head SHA, kind, and reason have not changed for two hours, or after three hours in all. A `BLOCKER` with reason `review-required` or `merge-blocked` (exit 6) needs a person, so report it and stop the loop instead of rerunning the watcher. A wait for a human review is `watch_pull_request` and the end of the turn, because another account's review wakes the thread. Unwatch with `unwatch_pull_request` when babysitting stops.",
+      "rationale": "Playbooks: Babysit drive. A skill-relative path does not resolve from the project directory, the watcher has no deadline by default and a shell call stops at the 600-second tool cap, and the exit 6 merge gates come from pstack-claude #95 (t3-pstack 2.0.0-rc.2)"
+    },
+    {
+      "pattern": "`scripts/watch-pr/watch-pr --queued-stack` under `/loop` until it reports `COMPLETE` at the ceiling. Pass the run's PR numbers, bottom-to-top, in `--stack-prs`, and pass the same list each time you restart the watcher.",
+      "files": "^skills/poteto-mode/playbooks/",
+      "replacement": "`<plugin root>/skills/poteto-mode/scripts/watch-pr/watch-pr --queued-stack` as a loop inside the turn until it reports `COMPLETE` at the ceiling. Pass the run's PR numbers, bottom-to-top, in `--stack-prs`, and pass the same list each time you restart the watcher. Run it with `--timeout 540` and the shell's own timeout above 540 seconds and under the 600-second tool cap, check the ceiling after each return, and report and stop after three hours. `watch_pull_request` cannot stand in here, because it does not wake on a merge or on merge-queue state.",
       "rationale": "Playbooks: Shipping (the watcher loops inside the turn); a skill-relative path does not resolve from the project directory"
     },
     {
@@ -670,100 +657,10 @@
       "files": "^skills/poteto-mode/playbooks/"
     },
     {
-      "pattern": "on the `swarm workers` model (default `grok-4.7-xhigh-fast`)",
-      "replacement": "on the `swarm workers` model (default in the **swarm** skill's Models section)",
-      "rationale": "Model names",
-      "files": "^skills/poteto-mode/playbooks/"
-    },
-    {
-      "pattern": "Browser, Electron, and web UIs use `control-ui` from `cursor-team-kit`. CLIs and TUIs use `control-cli` from `cursor-team-kit`. Native mobile uses whatever simulator-driving skill the repo has.",
-      "replacement": "The project's verify skill comes first. Otherwise web UIs use T3's `preview_*` tools, CLIs and TUIs their own commands, and native mobile T3's `device_*` tools or the repo's simulator-driving skill. Electron and desktop apps need the project's own driver.",
-      "rationale": "UI evidence",
-      "files": "^skills/poteto-mode/playbooks/"
-    },
-    {
-      "pattern": "Read these from trunk at program start.",
-      "replacement": "Read these at program start.",
-      "rationale": "an installed plugin has no trunk to read",
-      "files": "^skills/poteto-mode/playbooks/"
-    },
-    {
+      "pattern": "An agent that only dispatches, polls, or packs results runs on `claude-opus-5-5-medium-fast`.",
       "files": "^skills/poteto-mode/playbooks/",
-      "pattern": "Re-read the execution playbook from trunk.",
-      "replacement": "Re-read the execution playbook from disk.",
-      "rationale": "an installed plugin has no trunk to read; the playbook's own file is on disk"
-    },
-    {
-      "pattern": "`git show origin/main:<control skill path>`",
-      "replacement": "`cat <control skill path>`",
-      "rationale": "an installed plugin has no trunk to read",
-      "files": "^skills/poteto-mode/playbooks/"
-    },
-    {
-      "pattern": "arm the audit tick as `/loop 1h` with the tick prompt below",
-      "replacement": "arm the audit tick as an hourly schedule_task bound to this thread with the tick prompt below",
-      "rationale": "Playbooks: Autopilot (hourly tick); check-plan.mjs reads the same marker",
-      "files": "^skills/poteto-mode/playbooks/"
-    },
-    {
-      "pattern": "Each live lane runs on its own cloud VM at the PR head. Drive through `control-ui` or `control-cli` from `cursor-team-kit`.",
-      "replacement": "Each live lane runs in its own worktree at the PR head. Drive through the control skill above.",
-      "rationale": "no cloud VMs on T3; UI evidence",
-      "files": "^skills/poteto-mode/playbooks/"
-    },
-    {
-      "pattern": "Agents are spawned, resumed, and drained only through the Task tool.",
-      "replacement": "Agents are spawned, resumed, and drained only through `delegate_task`, `t3_thread_send` to a child's `childThreadId`, and `task_status`.",
-      "rationale": "Tool actions",
-      "files": "^skills/poteto-mode/playbooks/"
-    },
-    {
-      "pattern": "(nesting works to depth 3, and a nested spawn has the full Task schema including `environment`)",
-      "replacement": "(a `delegate_task` child can delegate its own)",
-      "rationale": "Tool actions: Dispatch",
-      "files": "^skills/poteto-mode/playbooks/"
-    },
-    {
-      "pattern": "- **Worker / verifier.** Always `environment: \"cloud\"` unless the task needs this machine: `control-ui` or `control-cli` runtime verification (from `cursor-team-kit`). Reading local transcripts under `agent-transcripts/`. Simulators and local IDE state. Auth that exists only here. Cloud agents cannot read the local store, so their briefs inline what they need or point at repo paths.",
-      "replacement": "- **Worker / verifier.** Always a `delegate_task` child in its own git worktree, named by absolute path in its brief as the only place it writes. Every child runs on this machine, so it can drive the real surface, read T3 threads, and use local auth. A child starts without your context, so its brief inlines what it needs or points at repo paths.",
-      "rationale": "Playbooks: Orchestrate; Subagent policy (worktree)",
-      "files": "^skills/poteto-mode/playbooks/"
-    },
-    {
-      "pattern": "in the current agent's store (path in the system prompt).",
-      "replacement": "in `${XDG_STATE_HOME:-~/.local/state}/t3-pstack/` (T3 names no agent store).",
-      "rationale": "no Cursor agent store on T3",
-      "files": "^skills/poteto-mode/playbooks/"
-    },
-    {
-      "pattern": "its spawn budget with the cloud default and the local exception list,",
-      "replacement": "its spawn budget,",
-      "rationale": "no cloud default on T3",
-      "files": "^skills/poteto-mode/playbooks/"
-    },
-    {
-      "files": "^skills/poteto-mode/playbooks/",
-      "pattern": "Chain rebases run in cloud. A local rebase at this scale takes the laptop down.",
-      "replacement": "Chain rebases run one at a time, each in its own worktree, because a rebase at this scale can take the laptop down.",
-      "rationale": "no cloud on T3; every child runs on this machine"
-    },
-    {
-      "pattern": "Work that exists only on one VM when that VM dies was never done.",
-      "replacement": "Work that exists only in one worktree when that worktree is removed was never done.",
-      "rationale": "no cloud VMs on T3",
-      "files": "^skills/poteto-mode/playbooks/"
-    },
-    {
-      "pattern": "the cloud agent's status in the Cursor dashboard.",
-      "replacement": "each child's `task_status`.",
-      "rationale": "Tool actions: List subagents",
-      "files": "^skills/poteto-mode/playbooks/"
-    },
-    {
-      "pattern": "- After a Cursor restart: local agents are dead, cloud work is not. Re-read the standing orders and `units.tsv`, recompute the frontier, reattach cloud work by PR and branch rather than agent id,",
-      "replacement": "- After a T3 restart: in-flight turns stop, while T3 threads, their worktrees, and pushed branches survive. Re-read the standing orders and `units.tsv`, recompute the frontier, reattach work by PR and branch rather than task id,",
-      "rationale": "no cloud agents on T3",
-      "files": "^skills/poteto-mode/playbooks/"
+      "replacement": "An agent that only dispatches, polls, or packs results runs on `claudeAgent/claude-opus-5-5 effort=medium`.",
+      "rationale": "Model names: Cursor's -fast slug maps to the plain T3 model at the same effort"
     },
     {
       "pattern": "A local transcript under the active workspace's `agent-transcripts/` directory (the system prompt names the path. Do not glob across `~/.cursor/projects/*/`, that crosses workspace boundaries and reads private chats from unrelated projects), a cloud-agent URL, or a pushed branch.",
@@ -774,8 +671,8 @@
     {
       "files": "^skills/poteto-mode/playbooks/",
       "pattern": "One verifier per PR, each a Cursor cloud agent, runs the change the way a user would with the matching control skill (such as `control-ui` or `control-cli` from `cursor-team-kit`), parent against head,",
-      "replacement": "One verifier per PR, each a `delegate_task` child in its own worktree, runs the change the way a user would with the matching control skill in poteto-mode's Non-negotiables, parent against head,",
-      "rationale": "Playbooks: Shipping; UI evidence"
+      "replacement": "One verifier per PR, each a `delegate_task` child that starts from the PR's head commit per poteto-mode's Dispatch on T3 and names that commit in its verdict, runs the change the way a user would with the matching control skill in poteto-mode's Non-negotiables, parent against head,",
+      "rationale": "Playbooks: Shipping; UI evidence. T3's worktree isolation starts from the parent's HEAD commit, so the brief names the head to verify"
     },
     {
       "pattern": "`/loop` per component until the diff is zero.",
@@ -818,9 +715,9 @@
       "rationale": "the port carries deslop"
     },
     {
-      "pattern": "the `deslop` skill from the `cursor-team-kit` plugin (`/deslop`)",
-      "replacement": "the **deslop** skill (`/deslop`)",
-      "rationale": "the port carries deslop"
+      "pattern": "`/deslop` from the `cursor-team-kit` plugin",
+      "replacement": "`/deslop`",
+      "rationale": "cursor-team-kit skills ship in this plugin"
     },
     {
       "pattern": "`/deslop` from `cursor-team-kit`",
@@ -834,22 +731,7 @@
       "files": "^skills/poteto-help/references/prompting\\.md$"
     },
     {
-      "pattern": "`git show origin/main:pstack/skills/",
-      "replacement": "`cat <plugin root>/skills/",
-      "rationale": "an installed plugin has no trunk to read"
-    },
-    {
-      "pattern": "a Cursor restart",
-      "replacement": "an app restart",
-      "rationale": "no Cursor on T3"
-    },
-    {
       "pattern": "`~/.cursor/rules/pstack-models.mdc`",
-      "replacement": "the model sheet",
-      "rationale": "The sheet"
-    },
-    {
-      "pattern": "the `pstack-models.mdc` rule",
       "replacement": "the model sheet",
       "rationale": "The sheet"
     },
@@ -859,28 +741,16 @@
       "rationale": "The sheet"
     },
     {
-      "regex": "default to one each on `(?:claude|gpt|grok|gemini|composer)-[^`]+`(?:(?:,| and|, and) `(?:claude|gpt|grok|gemini|composer)-[^`]+`)*\\.",
-      "replacement": "run one each on the defaults in [Models](#models).",
-      "rationale": "Model names",
-      "files": "^skills/arena/SKILL\\.md$"
+      "regex": "the `arena runners` line in the model sheet, by default `(?:claude|gpt|grok|gemini|composer)-[^`]+`(?:(?:,| and|, and) `(?:claude|gpt|grok|gemini|composer)-[^`]+`)*\\.",
+      "files": "^skills/arena/SKILL\\.md$",
+      "replacement": "the `arena runners` line in the model sheet, by default one each on the entries in [Models](#models).",
+      "rationale": "Model names: T3 defaults live in models.json"
     },
     {
-      "regex": "choose from `(?:claude|gpt|grok|gemini|composer)-[^`]+`(?:(?:,| and|, and) `(?:claude|gpt|grok|gemini|composer)-[^`]+`)*\\.",
-      "replacement": "choose from the `arena cross-judge pool` defaults in [Models](#models).",
-      "rationale": "Model names",
-      "files": "^skills/arena/SKILL\\.md$"
-    },
-    {
-      "regex": "With no family match, use `(?:claude|gpt|grok|gemini|composer)-[^`]+`\\.",
-      "replacement": "With no family match, use the first `arena runners` default in [Models](#models).",
-      "rationale": "Model names",
-      "files": "^skills/arena/SKILL\\.md$"
-    },
-    {
-      "regex": "use `(?:claude|gpt|grok|gemini|composer)-[^`]+`(?:(?:,| and|, and) `(?:claude|gpt|grok|gemini|composer)-[^`]+`)+\\.",
-      "replacement": "use the defaults in [Models](#models).",
-      "rationale": "Model names",
-      "files": "^skills/architect/SKILL\\.md$"
+      "regex": "the `arena cross-judge pool` line in the model sheet, by default `(?:claude|gpt|grok|gemini|composer)-[^`]+`(?:(?:,| and|, and) `(?:claude|gpt|grok|gemini|composer)-[^`]+`)*\\.",
+      "files": "^skills/arena/SKILL\\.md$",
+      "replacement": "the `arena cross-judge pool` line in the model sheet, by default the entries in [Models](#models), in that order.",
+      "rationale": "Model names: T3 defaults live in models.json"
     },
     {
       "regex": "use `(?:claude|gpt|grok|gemini|composer)-[^`]+`\\.",
@@ -895,37 +765,14 @@
       "files": "^skills/poteto-mode/playbooks/"
     },
     {
-      "regex": "\\(default `(?:claude|gpt|grok|gemini|composer)-[^`]+`\\)",
-      "replacement": "(default in [Models](#models))",
-      "rationale": "Model names",
-      "files": "/SKILL\\.md$"
-    },
-    {
-      "regex": ", default `(?:claude|gpt|grok|gemini|composer)-[^`]+`",
-      "replacement": ", default in [Models](#models)",
-      "rationale": "Model names",
-      "files": "/SKILL\\.md$"
-    },
-    {
-      "regex": " \\| `(?:claude|gpt|grok|gemini|composer)-[^`]+` \\| `references/",
-      "replacement": " | default in [Models](#models) | `references/",
-      "rationale": "Model names",
-      "files": "^skills/reflect/SKILL\\.md$"
-    },
-    {
-      "regex": "Families go by prefix: .*?`composer-\\*`\\. A refused `composer-\\*` entry runs on (?:`[^`]+`|Reviewer B's default)\\.",
-      "replacement": "A model's family is the first segment of its ID's last `/` part, such as `claude`, `gpt`, or `grok`, whatever provider instance serves it.",
-      "rationale": "The sheet (family rule); a refused entry already runs on another target of its family"
+      "pattern": "Families go by prefix, and the longest match wins: `claude-fable-*`, `claude-*`, and `gemini-*`, after dropping a leading `cursor-`. Any other slug's family is its text before the first hyphen.",
+      "replacement": "A model's family is the first segment of its ID's last `/` part, such as `claude`, `gpt`, or `gemini`, whatever provider instance serves it, except that Fable (`claude-fable-*`) is its own family.",
+      "rationale": "The sheet (family rule), with upstream's Fable exception"
     },
     {
       "pattern": "omit Task `model`",
       "replacement": "omit `target`",
       "rationale": "The sheet (inherit-parent)"
-    },
-    {
-      "pattern": "the Task tool",
-      "replacement": "`delegate_task`",
-      "rationale": "Tool actions: Dispatch"
     },
     {
       "pattern": "Task spawn",
@@ -943,37 +790,15 @@
       "rationale": "Tool actions: Dispatch (async)"
     },
     {
-      "pattern": "`subagent_type: \"poteto-agent\"`",
-      "replacement": "a `poteto-agent` brief (poteto-mode's Subagents section)",
-      "rationale": "persona by brief (Subagent policy)"
-    },
-    {
       "pattern": "create-skill",
       "replacement": "skill-creator",
       "rationale": "create-skill is a Cursor built-in; Codex ships skill-creator"
-    },
-    {
-      "regex": "(?<![\\w./<>-])pstack/skills/",
-      "replacement": "<plugin root>/skills/",
-      "rationale": "Lauren's repo-relative paths point into the installed plugin"
     },
     {
       "files": "^skills/poteto-mode/scripts/worktree-audit\\.sh$",
       "pattern": "# Transcripts dir: ~/.cursor/projects/<slugified-repo-path>/agent-transcripts.\nslug=$(printf '%s' \"$main_wt\" | sed 's#^/##; s#/#-#g')\ntranscripts=\"$HOME/.cursor/projects/$slug/agent-transcripts\"",
       "replacement": "# T3 keeps chats in threads, not files, so LAST_CHAT stays empty and the\n# playbook checks each thread's worktreePath instead.\ntranscripts=\"\"",
       "rationale": "Transcripts; Playbooks: Worktree cleanup. The script skips its scan when the directory is empty, and dropping the slug keeps it shellcheck-clean"
-    },
-    {
-      "pattern": "git show origin/main:",
-      "replacement": "cat <plugin root>/skills/",
-      "rationale": "the plan reads installed skills; the checker's marker moves with the template",
-      "files": "^skills/poteto-mode/scripts/check-plan\\.(?:mjs|test\\.ts)$"
-    },
-    {
-      "pattern": "/loop 1h",
-      "replacement": "hourly schedule_task",
-      "rationale": "the plan arms a schedule_task; the checker's marker moves with the template",
-      "files": "^skills/poteto-mode/scripts/check-plan\\.(?:mjs|test\\.ts)$"
     },
     {
       "pattern": "## Autonomy",
@@ -1078,6 +903,10 @@
     {
       "regex": "(?:^|[\\s`(])/visualize\\b",
       "hint": "Cursor's canvas command; T3 renders a page inline with html_render"
+    },
+    {
+      "regex": "\\bProject (?:tracker|store)\\b",
+      "hint": "Cursor Projects; T3 keeps program state under ${XDG_STATE_HOME:-~/.local/state}/t3-pstack/"
     }
   ]
 }
